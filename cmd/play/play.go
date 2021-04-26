@@ -29,10 +29,41 @@ func NewPlayCmd() *cobra.Command {
 }
 
 func (o *options) runE(cmd *cobra.Command, args []string) error {
+	sudoku, err := o.read()
+	if err != nil {
+		return fmt.Errorf("failed to read Sudoku file: %w", err)
+	}
+
+	fmt.Printf("%s", sudoku)
+
+	// Game loop
+	reader := bufio.NewReader(os.Stdin)
+	for {
+		text, err := reader.ReadString('\n')
+		if err != nil {
+			fmt.Printf("invalid read: %v\n", err)
+		}
+
+		// Read input as [row][col][val], e.g. 138 -> Row 1, Col 3, Val 8
+		row := int(text[0] - '0')
+		col := int(text[1] - '0')
+		val := int(text[2] - '0')
+
+		sudoku.Change(row, col, val)
+		if !sudoku.Validate() {
+			fmt.Println("Board is invalid after the last input.")
+		}
+		fmt.Printf("%s", sudoku)
+	}
+
+	return nil
+}
+
+func (o *options) read() (*engine.Sudoku, error) {
 	// Read the file
 	file, err := os.Open(o.source)
 	if err != nil {
-		return fmt.Errorf("failed to read file: %w", err)
+		return nil, fmt.Errorf("failed to read file: %w", err)
 	}
 	scanner := bufio.NewScanner(file)
 
@@ -50,10 +81,8 @@ func (o *options) runE(cmd *cobra.Command, args []string) error {
 
 	sudoku, err := engine.NewSudoku(board)
 	if err != nil {
-		return fmt.Errorf("failed to create a new Sudoku: %w", err)
+		return nil, fmt.Errorf("failed to create a new Sudoku: %w", err)
 	}
 
-	fmt.Printf("%s", sudoku)
-
-	return nil
+	return sudoku, nil
 }

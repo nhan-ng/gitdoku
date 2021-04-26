@@ -25,24 +25,24 @@ func NewSudoku(initial [][]int) (*Sudoku, error) {
 	}, nil
 }
 
-func (s *Sudoku) Change(row, col, val int) (*Sudoku, error) {
+func (s *Sudoku) Change(row, col, val int) error {
 	// Validate
-	if row <= 0 || row >= 9 {
-		return nil, InvalidCoordinateError
+	if row <= 0 || row > 9 {
+		return InvalidCoordinateError
 	}
-	if col <= 0 || col >= 9 {
-		return nil, InvalidCoordinateError
+	if col <= 0 || col > 9 {
+		return InvalidCoordinateError
 	}
-	if s.initial[row][col] != 0 {
-		return nil, CannotChangeFixedPositionError
+	if s.initial[row-1][col-1] != 0 {
+		return CannotChangeFixedPositionError
 	}
-	if val <= 0 || val >= 9 {
-		return nil, InvalidValueError
+	if val <= 0 || val > 9 {
+		return InvalidValueError
 	}
 
 	// Update value
-	s.Board[row][col] = val
-	return s, nil
+	s.Board[row-1][col-1] = val
+	return nil
 }
 
 func (s *Sudoku) Validate() bool {
@@ -56,7 +56,7 @@ func (s *Sudoku) Validate() bool {
 	// Validate every column
 	for i := 0; i < 9; i++ {
 		column := make([]int, 9)
-		for j := 0; j < 0; j++ {
+		for j := 0; j < 9; j++ {
 			column[j] = s.Board[j][i]
 		}
 		if !s.validateNumbers(column) {
@@ -64,10 +64,12 @@ func (s *Sudoku) Validate() bool {
 		}
 	}
 
+	fmt.Println("Validating boxes")
+
 	// Validate every box
 	for i := 0; i < 9; i += 3 {
-		box := make([]int, 9)
 		for j := 0; j < 9; j += 3 {
+			box := make([]int, 0)
 			box = append(box, s.Board[i][j:j+3]...)
 			box = append(box, s.Board[i+1][j:j+3]...)
 			box = append(box, s.Board[i+2][j:j+3]...)
@@ -82,17 +84,20 @@ func (s *Sudoku) Validate() bool {
 }
 
 func (s *Sudoku) validateNumbers(numbers []int) bool {
-	checkList := make([]bool, 9)
+	fmt.Printf("Checking: %+v\n", numbers)
+
+	checkList := make([]bool, 10)
 	for _, num := range numbers {
-		if num <= 0 || num > 9 {
+		if num < 0 || num > 9 {
 			return false
 		}
-		checkList[num-1] = true
-	}
-
-	for _, check := range checkList {
-		if !check {
+		if num == 0 {
+			continue
+		}
+		if checkList[num] { // Duplicate
 			return false
+		} else {
+			checkList[num] = true
 		}
 	}
 
@@ -101,9 +106,10 @@ func (s *Sudoku) validateNumbers(numbers []int) bool {
 
 func (s *Sudoku) String() string {
 	var str strings.Builder
+	fmt.Fprintln(&str, "    1  2  3     4  5  6     7  8  9   ")
 	fmt.Fprintln(&str, " -------------------------------------")
 	for i := 0; i < 9; i++ {
-		fmt.Fprint(&str, " | ")
+		fmt.Fprintf(&str, "%d| ", i+1)
 		for j := 0; j < 9; j++ {
 			num := s.Board[i][j]
 			if num == 0 {
