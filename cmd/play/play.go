@@ -37,22 +37,36 @@ func (o *options) runE(cmd *cobra.Command, args []string) error {
 	fmt.Printf("%s", sudoku)
 
 	// Game loop
-	reader := bufio.NewReader(os.Stdin)
-	for {
-		text, err := reader.ReadString('\n')
-		if err != nil {
-			fmt.Printf("invalid read: %v\n", err)
+	scanner := bufio.NewScanner(os.Stdin)
+	for scanner.Scan() {
+		text := scanner.Text()
+		fmt.Printf("Text: %q\n", text)
+
+		switch text {
+		case "undo":
+			err = sudoku.Undo()
+			if err != nil {
+				fmt.Printf("err: %v\n", err)
+			}
+
+		case "redo":
+			err = sudoku.Redo()
+			if err != nil {
+				fmt.Printf("err: %v\n", err)
+			}
+
+		default:
+			// Read input as [row][col][val], e.g. 138 -> row 1, col 3, val 8
+			row := int(text[0] - '0')
+			col := int(text[1] - '0')
+			val := int(text[2] - '0')
+
+			sudoku.Change(row, col, val)
+			if !sudoku.Validate() {
+				fmt.Println("Board is invalid after the last input.")
+			}
 		}
 
-		// Read input as [row][col][val], e.g. 138 -> Row 1, Col 3, Val 8
-		row := int(text[0] - '0')
-		col := int(text[1] - '0')
-		val := int(text[2] - '0')
-
-		sudoku.Change(row, col, val)
-		if !sudoku.Validate() {
-			fmt.Println("Board is invalid after the last input.")
-		}
 		fmt.Printf("%s", sudoku)
 	}
 
