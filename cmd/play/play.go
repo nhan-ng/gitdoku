@@ -38,9 +38,10 @@ func (o *options) runE(cmd *cobra.Command, args []string) error {
 
 	// Game loop
 	scanner := bufio.NewScanner(os.Stdin)
+
+GameLoop:
 	for scanner.Scan() {
 		text := scanner.Text()
-		fmt.Printf("Text: %q\n", text)
 
 		switch text {
 		case "undo":
@@ -55,14 +56,19 @@ func (o *options) runE(cmd *cobra.Command, args []string) error {
 				fmt.Printf("err: %v\n", err)
 			}
 
+		case "exit":
+			break GameLoop
+
 		default:
 			// Read input as [row][col][val], e.g. 138 -> row 1, col 3, val 8
 			row := int(text[0] - '0')
 			col := int(text[1] - '0')
 			val := int(text[2] - '0')
 
-			sudoku.Change(row, col, val)
-			if !sudoku.Validate() {
+			err = sudoku.Change(row, col, val)
+			if err != nil {
+				fmt.Printf("err: %v\n", err)
+			} else if !sudoku.Validate() {
 				fmt.Println("Board is invalid after the last input.")
 			}
 		}
