@@ -3,33 +3,43 @@ package engine
 import (
 	"errors"
 	"fmt"
+	"math/rand"
 	"strings"
 )
 
 var (
-	ErrInvalidCoordinate          = errors.New("engine: invalid coordinate")
-	ErrInvalidValue               = errors.New("engine: invalid value")
-	ErrCannotChangeFixedPosition  = errors.New("engine: attempt to update a fixed slot")
-	ErrCannotUndoEmptyHistory     = errors.New("engine: unable to undo empty history")
-	ErrCannotRedoEmptyRedoHistory = errors.New("engine: unable to redo without any undo")
+	ErrInvalidCoordinate          = errors.New("sudoku: invalid coordinate")
+	ErrInvalidValue               = errors.New("sudoku: invalid value")
+	ErrCannotChangeFixedPosition  = errors.New("sudoku: attempt to update a fixed slot")
+	ErrCannotUndoEmptyHistory     = errors.New("sudoku: unable to undo empty history")
+	ErrCannotRedoEmptyRedoHistory = errors.New("sudoku: unable to redo without any undo")
+	ErrCannotSolveBoard           = errors.New("sudoku: unable to solve board")
+	ErrCannotGiveHint             = errors.New("sudoku: unable to give a hint")
 )
 
 type Sudoku struct {
 	Board [][]int
 
-	initial [][]int
+	initial     [][]int
+	solvedBoard [][]int
 
 	history     []move
 	redoHistory []move
 }
 
 func NewSudoku(initial [][]int) (*Sudoku, error) {
-	return &Sudoku{
+	s := &Sudoku{
 		Board:       duplicate(initial),
 		initial:     duplicate(initial),
+		solvedBoard: duplicate(initial),
 		history:     make([]move, 0),
 		redoHistory: make([]move, 0),
-	}, nil
+	}
+	if !s.solve(s.solvedBoard, 0, 0) {
+		return nil, ErrCannotSolveBoard
+	}
+
+	return s, nil
 }
 
 func (s *Sudoku) Change(row, col, val int) error {
@@ -91,8 +101,50 @@ func (s *Sudoku) Redo() error {
 }
 
 func (s *Sudoku) Validate() bool {
+	return s.validate(s.Board)
+}
+
+func (s *Sudoku) Solve() error {
+	board := duplicate(s.initial)
+	if s.solve(board, 0, 0) {
+		s.Board = board
+		return nil
+	}
+
+	return ErrCannotSolveBoard
+}
+
+func (s *Sudoku) IsCompleted() bool {
+	return s.isCompleted(s.Board)
+}
+
+func (s *Sudoku) Hint() error {
+	// Choose a random offset square to start searching for an empty square
+	rowOffset, colOffset := rand.Intn(9), rand.Intn(9)
+
+	for i := 0; i < 9; i++ {
+		for j := 0; j < 9; j++ {
+			row := (i + rowOffset) % 9
+			col := (j + colOffset) % 9
+			if s.Board[row][col] == 0 {
+				val := s.solvedBoard[row][col]
+				err := s.Change(row+1, col+1, val)
+				if err != nil {
+					return fmt.Errorf("failed to apply hint at [%d][%d] with value (%d): %w", row+1, col+1, val, err)
+				}
+
+				fmt.Printf("Hint was given at [%d][%d]: %d\n", row+1, col+1, val)
+				return nil
+			}
+		}
+	}
+
+	return ErrCannotGiveHint
+}
+
+func (s *Sudoku) validate(board [][]int) bool {
 	// Validate every row
-	for _, row := range s.Board {
+	for _, row := range board {
 		if !s.validateNumbers(row) {
 			return false
 		}
@@ -102,7 +154,7 @@ func (s *Sudoku) Validate() bool {
 	for i := 0; i < 9; i++ {
 		column := make([]int, 9)
 		for j := 0; j < 9; j++ {
-			column[j] = s.Board[j][i]
+			column[j] = board[j][i]
 		}
 		if !s.validateNumbers(column) {
 			return false
@@ -113,9 +165,9 @@ func (s *Sudoku) Validate() bool {
 	for i := 0; i < 9; i += 3 {
 		for j := 0; j < 9; j += 3 {
 			box := make([]int, 0)
-			box = append(box, s.Board[i][j:j+3]...)
-			box = append(box, s.Board[i+1][j:j+3]...)
-			box = append(box, s.Board[i+2][j:j+3]...)
+			box = append(box, board[i][j:j+3]...)
+			box = append(box, board[i+1][j:j+3]...)
+			box = append(box, board[i+2][j:j+3]...)
 
 			if !s.validateNumbers(box) {
 				return false
@@ -124,6 +176,18 @@ func (s *Sudoku) Validate() bool {
 	}
 
 	return true
+}
+
+func (s *Sudoku) isCompleted(board [][]int) bool {
+	for i := 0; i < 9; i++ {
+		for j := 0; j < 9; j++ {
+			if board[i][j] == 0 {
+				return false
+			}
+		}
+	}
+
+	return s.validate(board)
 }
 
 func (s *Sudoku) push(h *[]move, m move) {
@@ -155,14 +219,51 @@ func (s *Sudoku) validateNumbers(numbers []int) bool {
 	return true
 }
 
+func (s *Sudoku) solve(board [][]int, startRow, startCol int) bool {
+	for i := startRow; i < 9; i++ {
+		for j := startCol; j < 9; j++ {
+			cell := board[i][j]
+			if cell != 0 {
+				continue
+			}
+
+			// Try out each value 1-9
+			for k := 1; k <= 9; k++ {
+				board[i][j] = k
+				if s.validate(board) {
+					// Determine the next starting point
+					nextCol := (j + 1) % 9
+					nextRow := i + (j+1)/9
+					if s.solve(board, nextRow, nextCol) {
+						return true
+					}
+				}
+			}
+
+			// If none of the values solve, this isn't the solution, reset the square and fail
+			board[i][j] = 0
+			return false
+		}
+
+		// Next row, resetting starting col
+		startCol = 0
+	}
+
+	return s.isCompleted(board)
+}
+
 func (s *Sudoku) String() string {
+	return s.displayBoard(s.Board)
+}
+
+func (s *Sudoku) displayBoard(board [][]int) string {
 	var str strings.Builder
 	fmt.Fprintln(&str, "    1  2  3     4  5  6     7  8  9   ")
 	fmt.Fprintln(&str, " -------------------------------------")
 	for i := 0; i < 9; i++ {
 		fmt.Fprintf(&str, "%d| ", i+1)
 		for j := 0; j < 9; j++ {
-			num := s.Board[i][j]
+			num := board[i][j]
 			if num == 0 {
 				fmt.Fprint(&str, "   ")
 			} else {

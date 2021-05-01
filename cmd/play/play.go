@@ -59,6 +59,18 @@ GameLoop:
 		case "exit":
 			break GameLoop
 
+		case "solve":
+			err = sudoku.Solve()
+			if err != nil {
+				fmt.Printf("err: %v\n", err)
+			}
+
+		case "hint":
+			err = sudoku.Hint()
+			if err != nil {
+				fmt.Printf("err: %v\n", err)
+			}
+
 		default:
 			// Read input as [row][col][val], e.g. 138 -> row 1, col 3, val 8
 			row := int(text[0] - '0')
@@ -70,6 +82,8 @@ GameLoop:
 				fmt.Printf("err: %v\n", err)
 			} else if !sudoku.Validate() {
 				fmt.Println("Board is invalid after the last input.")
+			} else if sudoku.IsCompleted() {
+				fmt.Println("Congrats! You've solved it.")
 			}
 		}
 
