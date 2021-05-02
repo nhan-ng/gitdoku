@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/nhan-ng/sudoku/cmd/server"
+
 	"github.com/nhan-ng/sudoku/cmd/play"
 
 	"github.com/spf13/cobra"
@@ -25,12 +27,12 @@ to quickly create a Cobra application.`,
 
 func init() {
 	rootCmd.AddCommand(play.NewPlayCmd())
+	rootCmd.AddCommand(server.NewServerCmd())
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
-
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)

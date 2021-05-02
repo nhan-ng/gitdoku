@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -25,6 +26,25 @@ type Sudoku struct {
 
 	history     []move
 	redoHistory []move
+}
+
+func NewSudokuFromRaw(input string) (*Sudoku, error) {
+	// Read the file
+	scanner := bufio.NewScanner(strings.NewReader(input))
+
+	scanner.Split(bufio.ScanLines)
+	board := make([][]int, 0)
+	for scanner.Scan() {
+		text := scanner.Text()
+		row := make([]int, 0, 9)
+		for _, num := range text {
+			i := int(num - '0')
+			row = append(row, i)
+		}
+		board = append(board, row)
+	}
+
+	return NewSudoku(board)
 }
 
 func NewSudoku(initial [][]int) (*Sudoku, error) {

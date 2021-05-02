@@ -1,0 +1,50 @@
+type Query {
+  sudoku: Sudoku!
+  refHead(id: ID!): RefHead!
+  commit(id: ID!): Commit!
+}
+
+type Mutation {
+  commit(input: CommitInput!): Commit!
+}
+
+input CommitInput {
+#  authorId: ID!
+#  authorTimestamp: Time!
+#  committerId: ID!
+#  committerTimestamp: Time!
+  refHeadId: ID!
+
+  row: Int!
+  col: Int!
+  val: Int!
+}
+
+type Commit {
+  id: ID!
+#  authorId: ID!
+#  authorTimestamp: Time!
+#  committerId: ID!
+#  committerTimestamp: Time!
+
+  parentId: ID
+  parent: Commit
+
+  row: Int!
+  col: Int!
+  val: Int!
+}
+
+type RefHead {
+  id: ID!
+  commitId: ID
+
+  commits: [Commit!]!
+}
+
+type Sudoku {
+  refHeadId: ID!
+  board: [[Int!]!]!
+}
+
+scalar Time
