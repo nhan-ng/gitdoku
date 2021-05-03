@@ -1,0 +1,10 @@
+# /node_modules/* and /bower_components/* in the project root are ignored by default
+
+# Ignore type definitions
+types/**/*
+
+# Ignore static vendor files
+public/vendor/**/*
+
+# Ignore generated files
+**/__generated__/**/*

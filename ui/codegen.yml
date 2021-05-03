@@ -1,0 +1,16 @@
+schema:
+  - http://localhost:9999/graphql
+documents:
+  - ./src/**/*.graphql
+overwrite: true
+generates:
+  ./src/__generated__/types.ts:
+    config:
+      noNamespaces: true
+      nonOptionalTypename: true
+      scalars:
+        Time: string
+    plugins:
+      - typescript
+      - typescript-operations
+      - typescript-react-apollo

@@ -1,0 +1,33 @@
+query GetSudoku {
+  sudoku {
+    board
+    refHead {
+      id
+      commits {
+        id
+        row
+        col
+        val
+      }
+    }
+  }
+}
+
+mutation AddCommit($input: CommitInput!) {
+  commit(input: $input) {
+    id
+    row
+    col
+    val
+  }
+}
+
+subscription OnCommitAdded($refHeadId: ID!) {
+  commitAdded(refHeadId: $refHeadId) {
+    id
+    parentId
+    row
+    col
+    val
+  }
+}
