@@ -41,6 +41,7 @@ type ResolverRoot interface {
 	Query() QueryResolver
 	RefHead() RefHeadResolver
 	Subscription() SubscriptionResolver
+	Sudoku() SudokuResolver
 }
 
 type DirectiveRoot struct {
@@ -78,6 +79,7 @@ type ComplexityRoot struct {
 
 	Sudoku struct {
 		Board     func(childComplexity int) int
+		RefHead   func(childComplexity int) int
 		RefHeadID func(childComplexity int) int
 	}
 }
@@ -98,6 +100,9 @@ type RefHeadResolver interface {
 }
 type SubscriptionResolver interface {
 	CommitAdded(ctx context.Context, refHeadID string) (<-chan *model.Commit, error)
+}
+type SudokuResolver interface {
+	RefHead(ctx context.Context, obj *model.Sudoku) (*model.RefHead, error)
 }
 
 type executableSchema struct {
@@ -240,6 +245,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Sudoku.Board(childComplexity), true
 
+	case "Sudoku.refHead":
+		if e.complexity.Sudoku.RefHead == nil {
+			break
+		}
+
+		return e.complexity.Sudoku.RefHead(childComplexity), true
+
 	case "Sudoku.refHeadId":
 		if e.complexity.Sudoku.RefHeadID == nil {
 			break
@@ -378,6 +390,7 @@ type RefHead {
 
 type Sudoku {
   refHeadId: ID!
+  refHead: RefHead!
   board: [[Int!]!]!
 }
 
@@ -1135,6 +1148,41 @@ func (ec *executionContext) _Sudoku_refHeadId(ctx context.Context, field graphql
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Sudoku_refHead(ctx context.Context, field graphql.CollectedField, obj *model.Sudoku) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Sudoku",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Sudoku().RefHead(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.RefHead)
+	fc.Result = res
+	return ec.marshalNRefHead2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐRefHead(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Sudoku_board(ctx context.Context, field graphql.CollectedField, obj *model.Sudoku) (ret graphql.Marshaler) {
@@ -2546,12 +2594,26 @@ func (ec *executionContext) _Sudoku(ctx context.Context, sel ast.SelectionSet, o
 		case "refHeadId":
 			out.Values[i] = ec._Sudoku_refHeadId(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
+		case "refHead":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Sudoku_refHead(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "board":
 			out.Values[i] = ec._Sudoku_board(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))

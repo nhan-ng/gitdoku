@@ -48,6 +48,7 @@ type RefHead {
 
 type Sudoku {
   refHeadId: ID!
+  refHead: RefHead!
   board: [[Int!]!]!
 }
 

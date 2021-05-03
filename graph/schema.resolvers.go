@@ -115,6 +115,15 @@ func (r *subscriptionResolver) CommitAdded(ctx context.Context, refHeadID string
 	return commits, nil
 }
 
+func (r *sudokuResolver) RefHead(ctx context.Context, obj *model.Sudoku) (*model.RefHead, error) {
+	refHead, ok := r.refHeads[obj.RefHeadID]
+	if !ok {
+		return nil, errors.ErrRefHeadNotFound(obj.RefHeadID)
+	}
+
+	return refHead, nil
+}
+
 // Commit returns generated.CommitResolver implementation.
 func (r *Resolver) Commit() generated.CommitResolver { return &commitResolver{r} }
 
@@ -130,8 +139,12 @@ func (r *Resolver) RefHead() generated.RefHeadResolver { return &refHeadResolver
 // Subscription returns generated.SubscriptionResolver implementation.
 func (r *Resolver) Subscription() generated.SubscriptionResolver { return &subscriptionResolver{r} }
 
+// Sudoku returns generated.SudokuResolver implementation.
+func (r *Resolver) Sudoku() generated.SudokuResolver { return &sudokuResolver{r} }
+
 type commitResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type refHeadResolver struct{ *Resolver }
 type subscriptionResolver struct{ *Resolver }
+type sudokuResolver struct{ *Resolver }

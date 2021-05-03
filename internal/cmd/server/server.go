@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/nhan-ng/sudoku/graph"
-	"github.com/nhan-ng/sudoku/graph/generated"
-
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/nhan-ng/sudoku/graph"
+	"github.com/nhan-ng/sudoku/graph/generated"
+	"github.com/rs/cors"
 	"go.uber.org/zap"
 )
 
@@ -31,7 +31,7 @@ func Serve() error {
 	})
 
 	http.Handle("/", playground.Handler("Sudoku", "/graphql"))
-	http.Handle("/graphql", h)
+	http.Handle("/graphql", cors.AllowAll().Handler(h))
 
 	zap.L().Info("Serving at localhost:9999")
 	return http.ListenAndServe(":9999", nil)
