@@ -1,5 +1,6 @@
 import { useGetSudokuQuery } from "../../__generated__/types";
 import styled from "styled-components";
+import React from "react";
 
 const backgroundColor = "#FFF";
 const blue = "hsl(210, 88%, 56%)";
@@ -30,36 +31,33 @@ const SudokuCell = styled.td`
   }
 `;
 
-export const Sudoku: React.FC = () => {
-  const { data, error, loading } = useGetSudokuQuery();
+export type SudokuProps = {
+  onCellClicked: (row: number, col: number) => void;
+  board: number[][];
+};
 
-  console.log(data, error, loading);
-  if (loading || error) {
-    return <>Loading or Error: {error}</>;
-  }
-
-  if (!data) {
-    return <>Invalid state</>;
-  }
-  const { board } = data.sudoku;
+export function Sudoku(props: SudokuProps) {
+  const { board, onCellClicked } = props;
   return (
     <SudokuTable>
       <tbody>
-        {data &&
-          board.map((row, i) => {
-            return (
-              <SudokuRow key={`row-${i}`}>
-                {row.map((cell, j) => {
-                  return (
-                    <SudokuCell key={`cell-${i}${j}`}>
-                      {cell === 0 ? " " : cell}
-                    </SudokuCell>
-                  );
-                })}
-              </SudokuRow>
-            );
-          })}
+        {board.map((row, i) => {
+          return (
+            <SudokuRow key={`row-${i}`}>
+              {row.map((cell, j) => {
+                return (
+                  <SudokuCell
+                    key={`cell-${i}${j}`}
+                    onClick={() => onCellClicked(i, j)}
+                  >
+                    {cell === 0 ? " " : cell}
+                  </SudokuCell>
+                );
+              })}
+            </SudokuRow>
+          );
+        })}
       </tbody>
     </SudokuTable>
   );
-};
+}

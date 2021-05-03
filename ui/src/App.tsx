@@ -1,11 +1,11 @@
+import React from "react";
 import "./App.css";
-import { useGetSudokuQuery } from "./__generated__/types";
-import { Sudoku } from "./components/Sudoku";
+import { Game } from "./components/Game";
 
-export const App: React.FC = () => {
+export function App() {
   return (
     <div className="App">
-      <Sudoku />
+      <Game />
     </div>
   );
-};
+}
