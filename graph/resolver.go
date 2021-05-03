@@ -24,16 +24,17 @@ const sampleSudoku = `070308100
 // It serves as dependency injection for your app, add any dependencies you require here.
 
 type Resolver struct {
-	sudoku   model.Sudoku
-	commits  map[string]model.Commit
-	refHeads map[string]model.RefHead
+	sudoku   *model.Sudoku
+	commits  map[string]*model.Commit
+	refHeads map[string]*model.RefHead
 }
 
 func NewResolver() (*generated.Config, error) {
+	defaultRefHead := "master"
 	r := &Resolver{
-		commits: make(map[string]model.Commit),
-		refHeads: map[string]model.RefHead{
-			"master": {ID: "master"},
+		commits: make(map[string]*model.Commit),
+		refHeads: map[string]*model.RefHead{
+			defaultRefHead: model.NewRefHead(defaultRefHead),
 		},
 	}
 
@@ -42,8 +43,8 @@ func NewResolver() (*generated.Config, error) {
 		return nil, fmt.Errorf("failed to create a Sudoku: %w", err)
 	}
 
-	r.sudoku = model.Sudoku{
-		RefHeadID: "master",
+	r.sudoku = &model.Sudoku{
+		RefHeadID: defaultRefHead,
 		Board:     sudoku.Board,
 	}
 	return &generated.Config{

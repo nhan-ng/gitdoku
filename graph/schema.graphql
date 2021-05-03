@@ -8,6 +8,10 @@ type Mutation {
   commit(input: CommitInput!): Commit!
 }
 
+type Subscription {
+  commitAdded(refHeadId: ID!): Commit!
+}
+
 input CommitInput {
 #  authorId: ID!
 #  authorTimestamp: Time!

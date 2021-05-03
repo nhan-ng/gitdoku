@@ -5,12 +5,11 @@ package graph
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/nhan-ng/sudoku/graph/errors"
 	"github.com/nhan-ng/sudoku/graph/generated"
 	"github.com/nhan-ng/sudoku/graph/model"
-	"github.com/vektah/gqlparser/v2/gqlerror"
 )
 
 func (r *commitResolver) Parent(ctx context.Context, obj *model.Commit) (*model.Commit, error) {
@@ -20,49 +19,61 @@ func (r *commitResolver) Parent(ctx context.Context, obj *model.Commit) (*model.
 
 	commit, ok := r.commits[*obj.ParentID]
 	if !ok {
-		return nil, gqlerror.Errorf("unknown commit id %d", *obj.ParentID)
+		return nil, errors.ErrCommitNotFound(*obj.ParentID)
 	}
-	return &commit, nil
+	return commit, nil
 }
 
 func (r *mutationResolver) Commit(ctx context.Context, input model.CommitInput) (*model.Commit, error) {
 	refHead, ok := r.refHeads[input.RefHeadID]
 	if !ok {
-		return nil, gqlerror.Errorf("head [%s] not found", input.RefHeadID)
+		return nil, errors.ErrRefHeadNotFound(input.RefHeadID)
 	}
-	commitID := refHead.CommitID
-	commit := model.Commit{
+
+	// Validate
+	if input.Row < 0 || input.Row >= 9 {
+		return nil, errors.ErrInvalidInputCoordinate()
+	}
+	if input.Col < 0 || input.Col >= 9 {
+		return nil, errors.ErrInvalidInputCoordinate()
+	}
+
+	if r.sudoku.HasConflictWithFixedBoard(input.Row, input.Col) {
+		return nil, errors.ErrInvalidInputCoordinate()
+	}
+
+	// Create a commit
+	commit := &model.Commit{
 		ID:  uuid.NewString(),
 		Row: input.Row,
 		Col: input.Col,
 		Val: input.Val,
 	}
-	if commitID != nil {
-		commit.ParentID = commitID
-	}
-
-	// Update the ref
-	refHead.CommitID = &commit.ID
-	r.refHeads[input.RefHeadID] = refHead
+	refHead.AddCommit(commit)
 	r.commits[commit.ID] = commit
 
-	return &commit, nil
+	return commit, nil
 }
 
 func (r *queryResolver) Sudoku(ctx context.Context) (*model.Sudoku, error) {
-	return &r.sudoku, nil
+	return r.sudoku, nil
 }
 
 func (r *queryResolver) RefHead(ctx context.Context, id string) (*model.RefHead, error) {
 	refHead, ok := r.refHeads[id]
 	if !ok {
-		return nil, gqlerror.Errorf("head [%s] not found", id)
+		return nil, errors.ErrRefHeadNotFound(id)
 	}
-	return &refHead, nil
+	return refHead, nil
 }
 
 func (r *queryResolver) Commit(ctx context.Context, id string) (*model.Commit, error) {
-	panic(fmt.Errorf("not implemented"))
+	commit, ok := r.commits[id]
+	if !ok {
+		return nil, errors.ErrCommitNotFound(id)
+	}
+
+	return commit, nil
 }
 
 func (r *refHeadResolver) Commits(ctx context.Context, obj *model.RefHead) ([]*model.Commit, error) {
@@ -74,10 +85,32 @@ func (r *refHeadResolver) Commits(ctx context.Context, obj *model.RefHead) ([]*m
 	for commitID := obj.CommitID; commitID != nil; commitID = r.commits[*commitID].ParentID {
 		commit, ok := r.commits[*commitID]
 		if !ok {
-			return nil, gqlerror.Errorf("unknown commit id %d", commitID)
+			return nil, errors.ErrCommitNotFound(*commitID)
 		}
-		commits = append(commits, &commit)
+		commits = append(commits, commit)
 	}
+
+	return commits, nil
+}
+
+func (r *subscriptionResolver) CommitAdded(ctx context.Context, refHeadID string) (<-chan *model.Commit, error) {
+	refHead, ok := r.refHeads[refHeadID]
+	if !ok {
+		return nil, errors.ErrRefHeadNotFound(refHeadID)
+	}
+
+	// Add a new observer
+	observerID := uuid.NewString()
+	commits, cleanUp, err := refHead.AddObserver(observerID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Start a watcher to clean up the observer once the connection is disconnected
+	go func() {
+		<-ctx.Done()
+		cleanUp()
+	}()
 
 	return commits, nil
 }
@@ -94,7 +127,11 @@ func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 // RefHead returns generated.RefHeadResolver implementation.
 func (r *Resolver) RefHead() generated.RefHeadResolver { return &refHeadResolver{r} }
 
+// Subscription returns generated.SubscriptionResolver implementation.
+func (r *Resolver) Subscription() generated.SubscriptionResolver { return &subscriptionResolver{r} }
+
 type commitResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type refHeadResolver struct{ *Resolver }
+type subscriptionResolver struct{ *Resolver }
