@@ -7,8 +7,8 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/nhan-ng/sudoku/graph/errors"
 	"github.com/nhan-ng/sudoku/graph/generated"
+	"github.com/nhan-ng/sudoku/graph/gqlerrors"
 	"github.com/nhan-ng/sudoku/graph/model"
 )
 
@@ -19,7 +19,7 @@ func (r *commitResolver) Parent(ctx context.Context, obj *model.Commit) (*model.
 
 	commit, ok := r.commits[*obj.ParentID]
 	if !ok {
-		return nil, errors.ErrCommitNotFound(*obj.ParentID)
+		return nil, gqlerrors.ErrCommitNotFound(*obj.ParentID)
 	}
 	return commit, nil
 }
@@ -27,27 +27,27 @@ func (r *commitResolver) Parent(ctx context.Context, obj *model.Commit) (*model.
 func (r *mutationResolver) Commit(ctx context.Context, input model.CommitInput) (*model.Commit, error) {
 	refHead, ok := r.refHeads[input.RefHeadID]
 	if !ok {
-		return nil, errors.ErrRefHeadNotFound(input.RefHeadID)
+		return nil, gqlerrors.ErrRefHeadNotFound(input.RefHeadID)
 	}
 
 	// Validate
 	if input.Row < 0 || input.Row >= 9 {
-		return nil, errors.ErrInvalidInputCoordinate()
+		return nil, gqlerrors.ErrInvalidInputCoordinate()
 	}
 	if input.Col < 0 || input.Col >= 9 {
-		return nil, errors.ErrInvalidInputCoordinate()
+		return nil, gqlerrors.ErrInvalidInputCoordinate()
 	}
-
 	if r.sudoku.HasConflictWithFixedBoard(input.Row, input.Col) {
-		return nil, errors.ErrInvalidInputCoordinate()
+		return nil, gqlerrors.ErrInvalidInputCoordinate()
 	}
 
 	// Create a commit
 	commit := &model.Commit{
-		ID:  uuid.NewString(),
-		Row: input.Row,
-		Col: input.Col,
-		Val: input.Val,
+		ID:   uuid.NewString(),
+		Type: input.Type,
+		Row:  input.Row,
+		Col:  input.Col,
+		Val:  input.Val,
 	}
 	refHead.AddCommit(commit)
 	r.commits[commit.ID] = commit
@@ -62,7 +62,7 @@ func (r *queryResolver) Sudoku(ctx context.Context) (*model.Sudoku, error) {
 func (r *queryResolver) RefHead(ctx context.Context, id string) (*model.RefHead, error) {
 	refHead, ok := r.refHeads[id]
 	if !ok {
-		return nil, errors.ErrRefHeadNotFound(id)
+		return nil, gqlerrors.ErrRefHeadNotFound(id)
 	}
 	return refHead, nil
 }
@@ -70,7 +70,16 @@ func (r *queryResolver) RefHead(ctx context.Context, id string) (*model.RefHead,
 func (r *queryResolver) Commit(ctx context.Context, id string) (*model.Commit, error) {
 	commit, ok := r.commits[id]
 	if !ok {
-		return nil, errors.ErrCommitNotFound(id)
+		return nil, gqlerrors.ErrCommitNotFound(id)
+	}
+
+	return commit, nil
+}
+
+func (r *refHeadResolver) Commit(ctx context.Context, obj *model.RefHead) (*model.Commit, error) {
+	commit, ok := r.commits[obj.CommitID]
+	if !ok {
+		return nil, gqlerrors.ErrCommitNotFound(obj.CommitID)
 	}
 
 	return commit, nil
@@ -78,16 +87,23 @@ func (r *queryResolver) Commit(ctx context.Context, id string) (*model.Commit, e
 
 func (r *refHeadResolver) Commits(ctx context.Context, obj *model.RefHead) ([]*model.Commit, error) {
 	commits := make([]*model.Commit, 0)
-	if obj.CommitID == nil {
+	if obj.CommitID == "" {
 		return commits, nil
 	}
 
-	for commitID := obj.CommitID; commitID != nil; commitID = r.commits[*commitID].ParentID {
-		commit, ok := r.commits[*commitID]
+	for commitID := obj.CommitID; commitID != ""; {
+		commit, ok := r.commits[commitID]
 		if !ok {
-			return nil, errors.ErrCommitNotFound(*commitID)
+			return nil, gqlerrors.ErrCommitNotFound(commitID)
 		}
 		commits = append(commits, commit)
+
+		// Process last commit
+		if commit.ParentID == nil {
+			return commits, nil
+		} else {
+			commitID = *commit.ParentID
+		}
 	}
 
 	return commits, nil
@@ -96,7 +112,7 @@ func (r *refHeadResolver) Commits(ctx context.Context, obj *model.RefHead) ([]*m
 func (r *subscriptionResolver) CommitAdded(ctx context.Context, refHeadID string) (<-chan *model.Commit, error) {
 	refHead, ok := r.refHeads[refHeadID]
 	if !ok {
-		return nil, errors.ErrRefHeadNotFound(refHeadID)
+		return nil, gqlerrors.ErrRefHeadNotFound(refHeadID)
 	}
 
 	// Add a new observer
@@ -118,7 +134,7 @@ func (r *subscriptionResolver) CommitAdded(ctx context.Context, refHeadID string
 func (r *sudokuResolver) RefHead(ctx context.Context, obj *model.Sudoku) (*model.RefHead, error) {
 	refHead, ok := r.refHeads[obj.RefHeadID]
 	if !ok {
-		return nil, errors.ErrRefHeadNotFound(obj.RefHeadID)
+		return nil, gqlerrors.ErrRefHeadNotFound(obj.RefHeadID)
 	}
 
 	return refHead, nil

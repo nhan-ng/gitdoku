@@ -13,21 +13,37 @@ query GetSudoku {
   }
 }
 
+query GetRefHead($id: ID!) {
+  refHead(id: $id) {
+    commit {
+      id
+      ...CommitBlob
+      type
+      row
+      col
+      val
+    }
+  }
+}
+
 mutation AddCommit($input: CommitInput!) {
   commit(input: $input) {
-    id
-    row
-    col
-    val
+    ...CommitBlob
   }
 }
 
 subscription OnCommitAdded($refHeadId: ID!) {
   commitAdded(refHeadId: $refHeadId) {
-    id
-    parentId
-    row
-    col
-    val
+    ...CommitBlob
+  }
+}
+
+fragment CommitBlob on Commit {
+  blob {
+    board {
+      immutable
+      val
+      notes
+    }
   }
 }

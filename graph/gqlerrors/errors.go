@@ -1,4 +1,4 @@
-package errors
+package gqlerrors
 
 import "github.com/vektah/gqlparser/v2/gqlerror"
 
@@ -8,6 +8,10 @@ func ErrInvalidInputCoordinate() error {
 
 func ErrCommitNotFound(id string) error {
 	return gqlerror.Errorf("commit with id '%s' not found", id)
+}
+
+func ErrBlobtNotFound(id string) error {
+	return gqlerror.Errorf("blob with id '%s' not found", id)
 }
 
 func ErrRefHeadNotFound(id string) error {

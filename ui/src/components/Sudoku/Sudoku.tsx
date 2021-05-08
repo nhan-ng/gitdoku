@@ -1,6 +1,10 @@
-import { useGetSudokuQuery } from "../../__generated__/types";
+import {
+  Cell,
+  CommitType,
+  useAddCommitMutation,
+} from "../../__generated__/types";
 import styled from "styled-components";
-import React from "react";
+import React, { useState } from "react";
 
 const backgroundColor = "#FFF";
 const blue = "hsl(210, 88%, 56%)";
@@ -12,6 +16,7 @@ const orangeDark = "hsl(34, 76%, 89%)";
 
 const SudokuTable = styled.table`
   font-size: 26px;
+  font-weight: "bold";
   margin: 30px;
   border: 2px solid ${grey};
   border-collapse: collapse;
@@ -22,35 +27,70 @@ const SudokuRow = styled.tr`
     border-bottom: 2px solid ${grey};
   }
 `;
-const SudokuCell = styled.td`
+
+type SudokuCellProps = {
+  immutable: boolean;
+};
+const SudokuCell = styled.td<SudokuCellProps>`
   border: 1px solid ${greyLighter};
   padding: 12px 16px;
   cursor: pointer;
+  color: ${(prop) => (prop.immutable ? grey : greyLight)};
   &:nth-child(3n) {
     border-right: 2px solid ${grey};
   }
 `;
 
 export type SudokuProps = {
-  onCellClicked: (row: number, col: number) => void;
-  board: number[][];
+  refHeadId: string;
+  board: Cell[][];
+};
+
+type SelectedCell = {
+  row: number;
+  col: number;
 };
 
 export function Sudoku(props: SudokuProps) {
-  const { board, onCellClicked } = props;
+  const { board, refHeadId } = props;
+  const [selectedCell, setSelectedCell] = useState<SelectedCell>();
+  const [addCommit] = useAddCommitMutation();
+
+  function onCellClicked(row: number, col: number) {
+    setSelectedCell({ row, col });
+  }
+
+  async function onKeyDown(e: React.KeyboardEvent<HTMLTableElement>) {
+    e.preventDefault();
+    if (selectedCell && e.key >= "1" && e.key <= "9") {
+      await addCommit({
+        variables: {
+          input: {
+            row: selectedCell.row,
+            col: selectedCell.col,
+            val: parseInt(e.key, 10),
+            type: CommitType.AddFill,
+            refHeadId: refHeadId,
+          },
+        },
+      });
+    }
+  }
+
   return (
-    <SudokuTable>
+    <SudokuTable onKeyDown={onKeyDown} tabIndex={0}>
       <tbody>
         {board.map((row, i) => {
           return (
-            <SudokuRow key={`row-${i}`}>
+            <SudokuRow key={`${i}`}>
               {row.map((cell, j) => {
                 return (
                   <SudokuCell
-                    key={`cell-${i}${j}`}
+                    immutable={cell.immutable}
+                    key={`${i}${j}`}
                     onClick={() => onCellClicked(i, j)}
                   >
-                    {cell === 0 ? " " : cell}
+                    {cell.val === 0 ? " " : cell.val}
                   </SudokuCell>
                 );
               })}

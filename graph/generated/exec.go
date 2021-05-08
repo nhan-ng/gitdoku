@@ -48,12 +48,24 @@ type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
+	Blob struct {
+		Board func(childComplexity int) int
+	}
+
+	Cell struct {
+		Immutable func(childComplexity int) int
+		Notes     func(childComplexity int) int
+		Val       func(childComplexity int) int
+	}
+
 	Commit struct {
+		Blob     func(childComplexity int) int
 		Col      func(childComplexity int) int
 		ID       func(childComplexity int) int
 		Parent   func(childComplexity int) int
 		ParentID func(childComplexity int) int
 		Row      func(childComplexity int) int
+		Type     func(childComplexity int) int
 		Val      func(childComplexity int) int
 	}
 
@@ -68,6 +80,7 @@ type ComplexityRoot struct {
 	}
 
 	RefHead struct {
+		Commit   func(childComplexity int) int
 		CommitID func(childComplexity int) int
 		Commits  func(childComplexity int) int
 		ID       func(childComplexity int) int
@@ -96,6 +109,7 @@ type QueryResolver interface {
 	Commit(ctx context.Context, id string) (*model.Commit, error)
 }
 type RefHeadResolver interface {
+	Commit(ctx context.Context, obj *model.RefHead) (*model.Commit, error)
 	Commits(ctx context.Context, obj *model.RefHead) ([]*model.Commit, error)
 }
 type SubscriptionResolver interface {
@@ -119,6 +133,41 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	ec := executionContext{nil, e}
 	_ = ec
 	switch typeName + "." + field {
+
+	case "Blob.board":
+		if e.complexity.Blob.Board == nil {
+			break
+		}
+
+		return e.complexity.Blob.Board(childComplexity), true
+
+	case "Cell.immutable":
+		if e.complexity.Cell.Immutable == nil {
+			break
+		}
+
+		return e.complexity.Cell.Immutable(childComplexity), true
+
+	case "Cell.notes":
+		if e.complexity.Cell.Notes == nil {
+			break
+		}
+
+		return e.complexity.Cell.Notes(childComplexity), true
+
+	case "Cell.val":
+		if e.complexity.Cell.Val == nil {
+			break
+		}
+
+		return e.complexity.Cell.Val(childComplexity), true
+
+	case "Commit.blob":
+		if e.complexity.Commit.Blob == nil {
+			break
+		}
+
+		return e.complexity.Commit.Blob(childComplexity), true
 
 	case "Commit.col":
 		if e.complexity.Commit.Col == nil {
@@ -154,6 +203,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Commit.Row(childComplexity), true
+
+	case "Commit.type":
+		if e.complexity.Commit.Type == nil {
+			break
+		}
+
+		return e.complexity.Commit.Type(childComplexity), true
 
 	case "Commit.val":
 		if e.complexity.Commit.Val == nil {
@@ -204,6 +260,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.Sudoku(childComplexity), true
+
+	case "RefHead.commit":
+		if e.complexity.RefHead.Commit == nil {
+			break
+		}
+
+		return e.complexity.RefHead.Commit(childComplexity), true
 
 	case "RefHead.commitId":
 		if e.complexity.RefHead.CommitID == nil {
@@ -361,6 +424,7 @@ input CommitInput {
 #  committerTimestamp: Time!
   refHeadId: ID!
 
+  type: CommitType!
   row: Int!
   col: Int!
   val: Int!
@@ -372,18 +436,40 @@ type Commit {
 #  authorTimestamp: Time!
 #  committerId: ID!
 #  committerTimestamp: Time!
-
   parentId: ID
   parent: Commit
 
+  blob: Blob!
+
+  type: CommitType!
   row: Int!
   col: Int!
   val: Int!
 }
 
+enum CommitType {
+  UNKNOWN,
+  INITIAL,
+  ADD_FILL,
+  REMOVE_FILL,
+  ADD_NOTE,
+  REMOVE_NOTE,
+}
+
+type Blob {
+  board: [[Cell!]!]!
+}
+
+type Cell {
+  immutable: Boolean!
+  val: Int!
+  notes: [Int!]!
+}
+
 type RefHead {
   id: ID!
-  commitId: ID
+  commitId: ID!
+  commit: Commit!
 
   commits: [Commit!]!
 }
@@ -525,6 +611,146 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 
 // region    **************************** field.gotpl *****************************
 
+func (ec *executionContext) _Blob_board(ctx context.Context, field graphql.CollectedField, obj *model.Blob) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Blob",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Board, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([][]model.Cell)
+	fc.Result = res
+	return ec.marshalNCell2ᚕᚕgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCellᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Cell_immutable(ctx context.Context, field graphql.CollectedField, obj *model.Cell) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Cell",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Immutable, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Cell_val(ctx context.Context, field graphql.CollectedField, obj *model.Cell) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Cell",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Val, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Cell_notes(ctx context.Context, field graphql.CollectedField, obj *model.Cell) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Cell",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Notes, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]int)
+	fc.Result = res
+	return ec.marshalNInt2ᚕintᚄ(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Commit_id(ctx context.Context, field graphql.CollectedField, obj *model.Commit) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -622,6 +848,76 @@ func (ec *executionContext) _Commit_parent(ctx context.Context, field graphql.Co
 	res := resTmp.(*model.Commit)
 	fc.Result = res
 	return ec.marshalOCommit2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCommit(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Commit_blob(ctx context.Context, field graphql.CollectedField, obj *model.Commit) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Commit",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Blob, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.Blob)
+	fc.Result = res
+	return ec.marshalNBlob2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐBlob(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Commit_type(ctx context.Context, field graphql.CollectedField, obj *model.Commit) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Commit",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Type, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.CommitType)
+	fc.Result = res
+	return ec.marshalNCommitType2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCommitType(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Commit_row(ctx context.Context, field graphql.CollectedField, obj *model.Commit) (ret graphql.Marshaler) {
@@ -1021,11 +1317,49 @@ func (ec *executionContext) _RefHead_commitId(ctx context.Context, field graphql
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalOID2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _RefHead_commit(ctx context.Context, field graphql.CollectedField, obj *model.RefHead) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "RefHead",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.RefHead().Commit(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Commit)
+	fc.Result = res
+	return ec.marshalNCommit2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCommit(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _RefHead_commits(ctx context.Context, field graphql.CollectedField, obj *model.RefHead) (ret graphql.Marshaler) {
@@ -2321,6 +2655,14 @@ func (ec *executionContext) unmarshalInputCommitInput(ctx context.Context, obj i
 			if err != nil {
 				return it, err
 			}
+		case "type":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("type"))
+			it.Type, err = ec.unmarshalNCommitType2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCommitType(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		case "row":
 			var err error
 
@@ -2359,6 +2701,70 @@ func (ec *executionContext) unmarshalInputCommitInput(ctx context.Context, obj i
 
 // region    **************************** object.gotpl ****************************
 
+var blobImplementors = []string{"Blob"}
+
+func (ec *executionContext) _Blob(ctx context.Context, sel ast.SelectionSet, obj *model.Blob) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, blobImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Blob")
+		case "board":
+			out.Values[i] = ec._Blob_board(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var cellImplementors = []string{"Cell"}
+
+func (ec *executionContext) _Cell(ctx context.Context, sel ast.SelectionSet, obj *model.Cell) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, cellImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Cell")
+		case "immutable":
+			out.Values[i] = ec._Cell_immutable(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "val":
+			out.Values[i] = ec._Cell_val(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "notes":
+			out.Values[i] = ec._Cell_notes(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var commitImplementors = []string{"Commit"}
 
 func (ec *executionContext) _Commit(ctx context.Context, sel ast.SelectionSet, obj *model.Commit) graphql.Marshaler {
@@ -2388,6 +2794,16 @@ func (ec *executionContext) _Commit(ctx context.Context, sel ast.SelectionSet, o
 				res = ec._Commit_parent(ctx, field, obj)
 				return res
 			})
+		case "blob":
+			out.Values[i] = ec._Commit_blob(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "type":
+			out.Values[i] = ec._Commit_type(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "row":
 			out.Values[i] = ec._Commit_row(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -2535,6 +2951,23 @@ func (ec *executionContext) _RefHead(ctx context.Context, sel ast.SelectionSet, 
 			}
 		case "commitId":
 			out.Values[i] = ec._RefHead_commitId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "commit":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._RefHead_commit(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "commits":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -2871,6 +3304,10 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 
 // region    ***************************** type.gotpl *****************************
 
+func (ec *executionContext) marshalNBlob2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐBlob(ctx context.Context, sel ast.SelectionSet, v model.Blob) graphql.Marshaler {
+	return ec._Blob(ctx, sel, &v)
+}
+
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
 	res, err := graphql.UnmarshalBoolean(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -2884,6 +3321,84 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNCell2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCell(ctx context.Context, sel ast.SelectionSet, v model.Cell) graphql.Marshaler {
+	return ec._Cell(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNCell2ᚕgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCellᚄ(ctx context.Context, sel ast.SelectionSet, v []model.Cell) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNCell2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCell(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
+func (ec *executionContext) marshalNCell2ᚕᚕgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCellᚄ(ctx context.Context, sel ast.SelectionSet, v [][]model.Cell) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNCell2ᚕgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCellᚄ(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
 }
 
 func (ec *executionContext) marshalNCommit2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCommit(ctx context.Context, sel ast.SelectionSet, v model.Commit) graphql.Marshaler {
@@ -2940,6 +3455,16 @@ func (ec *executionContext) marshalNCommit2ᚖgithubᚗcomᚋnhanᚑngᚋsudoku�
 func (ec *executionContext) unmarshalNCommitInput2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCommitInput(ctx context.Context, v interface{}) (model.CommitInput, error) {
 	res, err := ec.unmarshalInputCommitInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNCommitType2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCommitType(ctx context.Context, v interface{}) (model.CommitType, error) {
+	var res model.CommitType
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNCommitType2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCommitType(ctx context.Context, sel ast.SelectionSet, v model.CommitType) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) unmarshalNID2string(ctx context.Context, v interface{}) (string, error) {

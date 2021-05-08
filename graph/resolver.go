@@ -4,6 +4,8 @@ package graph
 import (
 	"fmt"
 
+	"github.com/google/uuid"
+
 	"github.com/nhan-ng/sudoku/graph/generated"
 	"github.com/nhan-ng/sudoku/graph/model"
 	"github.com/nhan-ng/sudoku/internal/engine"
@@ -30,17 +32,27 @@ type Resolver struct {
 }
 
 func NewResolver() (*generated.Config, error) {
-	defaultRefHead := "master"
-	r := &Resolver{
-		commits: make(map[string]*model.Commit),
-		refHeads: map[string]*model.RefHead{
-			defaultRefHead: model.NewRefHead(defaultRefHead),
-		},
-	}
-
 	sudoku, err := engine.NewSudokuFromRaw(sampleSudoku)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create a Sudoku: %w", err)
+	}
+
+	defaultRefHead := "master"
+	initialCommit := &model.Commit{
+		ID:   uuid.NewString(),
+		Type: model.CommitTypeInitial,
+		Blob: model.Blob{
+			Board: convertBoard(sudoku.Board),
+		},
+	}
+	initialRefHead := model.NewRefHead(defaultRefHead, initialCommit)
+	r := &Resolver{
+		commits: map[string]*model.Commit{
+			initialCommit.ID: initialCommit,
+		},
+		refHeads: map[string]*model.RefHead{
+			defaultRefHead: initialRefHead,
+		},
 	}
 
 	r.sudoku = &model.Sudoku{
@@ -50,4 +62,22 @@ func NewResolver() (*generated.Config, error) {
 	return &generated.Config{
 		Resolvers: r,
 	}, nil
+}
+
+func convertBoard(board [][]int) [][]model.Cell {
+	result := make([][]model.Cell, 9)
+	for i := 0; i < 9; i++ {
+		row := make([]model.Cell, 9)
+		for j := 0; j < 9; j++ {
+			val := board[i][j]
+			row[j] = model.Cell{
+				Immutable: val != 0,
+				Val:       val,
+				Notes:     make([]int, 0),
+			}
+		}
+		result[i] = row
+	}
+
+	return result
 }

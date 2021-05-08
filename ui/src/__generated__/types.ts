@@ -22,11 +22,25 @@ export type Scalars = {
 
 
 
+export type Blob = {
+  __typename: 'Blob';
+  board: Array<Array<Cell>>;
+};
+
+export type Cell = {
+  __typename: 'Cell';
+  immutable: Scalars['Boolean'];
+  val: Scalars['Int'];
+  notes: Array<Scalars['Int']>;
+};
+
 export type Commit = {
   __typename: 'Commit';
   id: Scalars['ID'];
   parentId?: Maybe<Scalars['ID']>;
   parent?: Maybe<Commit>;
+  blob: Blob;
+  type: CommitType;
   row: Scalars['Int'];
   col: Scalars['Int'];
   val: Scalars['Int'];
@@ -34,10 +48,20 @@ export type Commit = {
 
 export type CommitInput = {
   refHeadId: Scalars['ID'];
+  type: CommitType;
   row: Scalars['Int'];
   col: Scalars['Int'];
   val: Scalars['Int'];
 };
+
+export enum CommitType {
+  Unknown = 'UNKNOWN',
+  Initial = 'INITIAL',
+  AddFill = 'ADD_FILL',
+  RemoveFill = 'REMOVE_FILL',
+  AddNote = 'ADD_NOTE',
+  RemoveNote = 'REMOVE_NOTE'
+}
 
 export type Mutation = {
   __typename: 'Mutation';
@@ -69,7 +93,8 @@ export type QueryCommitArgs = {
 export type RefHead = {
   __typename: 'RefHead';
   id: Scalars['ID'];
-  commitId?: Maybe<Scalars['ID']>;
+  commitId: Scalars['ID'];
+  commit: Commit;
   commits: Array<Commit>;
 };
 
@@ -112,6 +137,23 @@ export type GetSudokuQuery = (
   ) }
 );
 
+export type GetRefHeadQueryVariables = Exact<{
+  id: Scalars['ID'];
+}>;
+
+
+export type GetRefHeadQuery = (
+  { __typename: 'Query' }
+  & { refHead: (
+    { __typename: 'RefHead' }
+    & { commit: (
+      { __typename: 'Commit' }
+      & Pick<Commit, 'id' | 'type' | 'row' | 'col' | 'val'>
+      & CommitBlobFragment
+    ) }
+  ) }
+);
+
 export type AddCommitMutationVariables = Exact<{
   input: CommitInput;
 }>;
@@ -121,7 +163,7 @@ export type AddCommitMutation = (
   { __typename: 'Mutation' }
   & { commit: (
     { __typename: 'Commit' }
-    & Pick<Commit, 'id' | 'row' | 'col' | 'val'>
+    & CommitBlobFragment
   ) }
 );
 
@@ -134,11 +176,32 @@ export type OnCommitAddedSubscription = (
   { __typename: 'Subscription' }
   & { commitAdded: (
     { __typename: 'Commit' }
-    & Pick<Commit, 'id' | 'parentId' | 'row' | 'col' | 'val'>
+    & CommitBlobFragment
   ) }
 );
 
+export type CommitBlobFragment = (
+  { __typename: 'Commit' }
+  & { blob: (
+    { __typename: 'Blob' }
+    & { board: Array<Array<(
+      { __typename: 'Cell' }
+      & Pick<Cell, 'immutable' | 'val' | 'notes'>
+    )>> }
+  ) }
+);
 
+export const CommitBlobFragmentDoc = gql`
+    fragment CommitBlob on Commit {
+  blob {
+    board {
+      immutable
+      val
+      notes
+    }
+  }
+}
+    `;
 export const GetSudokuDocument = gql`
     query GetSudoku {
   sudoku {
@@ -182,16 +245,55 @@ export function useGetSudokuLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<
 export type GetSudokuQueryHookResult = ReturnType<typeof useGetSudokuQuery>;
 export type GetSudokuLazyQueryHookResult = ReturnType<typeof useGetSudokuLazyQuery>;
 export type GetSudokuQueryResult = Apollo.QueryResult<GetSudokuQuery, GetSudokuQueryVariables>;
+export const GetRefHeadDocument = gql`
+    query GetRefHead($id: ID!) {
+  refHead(id: $id) {
+    commit {
+      id
+      ...CommitBlob
+      type
+      row
+      col
+      val
+    }
+  }
+}
+    ${CommitBlobFragmentDoc}`;
+
+/**
+ * __useGetRefHeadQuery__
+ *
+ * To run a query within a React component, call `useGetRefHeadQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetRefHeadQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetRefHeadQuery({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useGetRefHeadQuery(baseOptions: Apollo.QueryHookOptions<GetRefHeadQuery, GetRefHeadQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<GetRefHeadQuery, GetRefHeadQueryVariables>(GetRefHeadDocument, options);
+      }
+export function useGetRefHeadLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetRefHeadQuery, GetRefHeadQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<GetRefHeadQuery, GetRefHeadQueryVariables>(GetRefHeadDocument, options);
+        }
+export type GetRefHeadQueryHookResult = ReturnType<typeof useGetRefHeadQuery>;
+export type GetRefHeadLazyQueryHookResult = ReturnType<typeof useGetRefHeadLazyQuery>;
+export type GetRefHeadQueryResult = Apollo.QueryResult<GetRefHeadQuery, GetRefHeadQueryVariables>;
 export const AddCommitDocument = gql`
     mutation AddCommit($input: CommitInput!) {
   commit(input: $input) {
-    id
-    row
-    col
-    val
+    ...CommitBlob
   }
 }
-    `;
+    ${CommitBlobFragmentDoc}`;
 export type AddCommitMutationFn = Apollo.MutationFunction<AddCommitMutation, AddCommitMutationVariables>;
 
 /**
@@ -221,14 +323,10 @@ export type AddCommitMutationOptions = Apollo.BaseMutationOptions<AddCommitMutat
 export const OnCommitAddedDocument = gql`
     subscription OnCommitAdded($refHeadId: ID!) {
   commitAdded(refHeadId: $refHeadId) {
-    id
-    parentId
-    row
-    col
-    val
+    ...CommitBlob
   }
 }
-    `;
+    ${CommitBlobFragmentDoc}`;
 
 /**
  * __useOnCommitAddedSubscription__

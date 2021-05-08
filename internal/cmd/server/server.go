@@ -5,6 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
+
+	"github.com/99designs/gqlgen/graphql/handler/extension"
+
+	"github.com/99designs/gqlgen/graphql/handler/transport"
+	"github.com/gorilla/websocket"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
@@ -24,11 +30,21 @@ func Serve() error {
 	if err != nil {
 		return fmt.Errorf("failed to create a GraphQL resolver: %w", err)
 	}
-	h := handler.NewDefaultServer(generated.NewExecutableSchema(*resolver))
+	h := handler.New(generated.NewExecutableSchema(*resolver))
 	h.SetRecoverFunc(func(ctx context.Context, err interface{}) (userMessage error) {
 		zap.L().Error("Panic error when processing GraphQL.", zap.Any("error", err))
 		return ErrDefaultGraphQL
 	})
+	h.AddTransport(transport.POST{})
+	h.AddTransport(transport.Websocket{
+		KeepAlivePingInterval: 10 * time.Second,
+		Upgrader: websocket.Upgrader{
+			CheckOrigin: func(r *http.Request) bool {
+				return true
+			},
+		},
+	})
+	h.Use(extension.Introspection{})
 
 	http.Handle("/", playground.Handler("Sudoku", "/graphql"))
 	http.Handle("/graphql", cors.AllowAll().Handler(h))

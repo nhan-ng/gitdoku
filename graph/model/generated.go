@@ -2,9 +2,65 @@
 
 package model
 
+import (
+	"fmt"
+	"io"
+	"strconv"
+)
+
 type CommitInput struct {
-	RefHeadID string `json:"refHeadId"`
-	Row       int    `json:"row"`
-	Col       int    `json:"col"`
-	Val       int    `json:"val"`
+	RefHeadID string     `json:"refHeadId"`
+	Type      CommitType `json:"type"`
+	Row       int        `json:"row"`
+	Col       int        `json:"col"`
+	Val       int        `json:"val"`
+}
+
+type CommitType string
+
+const (
+	CommitTypeUnknown    CommitType = "UNKNOWN"
+	CommitTypeInitial    CommitType = "INITIAL"
+	CommitTypeAddFill    CommitType = "ADD_FILL"
+	CommitTypeRemoveFill CommitType = "REMOVE_FILL"
+	CommitTypeAddNote    CommitType = "ADD_NOTE"
+	CommitTypeRemoveNote CommitType = "REMOVE_NOTE"
+)
+
+var AllCommitType = []CommitType{
+	CommitTypeUnknown,
+	CommitTypeInitial,
+	CommitTypeAddFill,
+	CommitTypeRemoveFill,
+	CommitTypeAddNote,
+	CommitTypeRemoveNote,
+}
+
+func (e CommitType) IsValid() bool {
+	switch e {
+	case CommitTypeUnknown, CommitTypeInitial, CommitTypeAddFill, CommitTypeRemoveFill, CommitTypeAddNote, CommitTypeRemoveNote:
+		return true
+	}
+	return false
+}
+
+func (e CommitType) String() string {
+	return string(e)
+}
+
+func (e *CommitType) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = CommitType(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid CommitType", str)
+	}
+	return nil
+}
+
+func (e CommitType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
 }

@@ -19,6 +19,7 @@ input CommitInput {
 #  committerTimestamp: Time!
   refHeadId: ID!
 
+  type: CommitType!
   row: Int!
   col: Int!
   val: Int!
@@ -30,18 +31,40 @@ type Commit {
 #  authorTimestamp: Time!
 #  committerId: ID!
 #  committerTimestamp: Time!
-
   parentId: ID
   parent: Commit
 
+  blob: Blob!
+
+  type: CommitType!
   row: Int!
   col: Int!
   val: Int!
 }
 
+enum CommitType {
+  UNKNOWN,
+  INITIAL,
+  ADD_FILL,
+  REMOVE_FILL,
+  ADD_NOTE,
+  REMOVE_NOTE,
+}
+
+type Blob {
+  board: [[Cell!]!]!
+}
+
+type Cell {
+  immutable: Boolean!
+  val: Int!
+  notes: [Int!]!
+}
+
 type RefHead {
   id: ID!
-  commitId: ID
+  commitId: ID!
+  commit: Commit!
 
   commits: [Commit!]!
 }
