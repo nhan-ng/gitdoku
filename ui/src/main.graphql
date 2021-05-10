@@ -2,40 +2,56 @@ query GetSudoku {
   sudoku {
     board
     refHead {
-      id
-      commits {
-        id
-        row
-        col
-        val
-      }
+      ...LiteRefHead
     }
   }
 }
 
-query GetRefHead($id: ID!) {
+query GetLiteRefHead($id: ID!) {
   refHead(id: $id) {
-    commit {
-      id
-      ...CommitBlob
-      type
-      row
-      col
-      val
-    }
+    ...LiteRefHead
+  }
+}
+
+query GetFullRefHead($id: ID!) {
+  refHead(id: $id) {
+    ...FullRefHead
+  }
+}
+
+fragment LiteRefHead on RefHead {
+  id
+  commit {
+    ...Commit
+  }
+}
+
+fragment FullRefHead on RefHead {
+  ...LiteRefHead
+  commits {
+    ...Commit
   }
 }
 
 mutation AddCommit($input: CommitInput!) {
   commit(input: $input) {
-    ...CommitBlob
+    ...Commit
   }
 }
 
 subscription OnCommitAdded($refHeadId: ID!) {
   commitAdded(refHeadId: $refHeadId) {
-    ...CommitBlob
+    ...Commit
   }
+}
+
+fragment Commit on Commit {
+  id
+  ...CommitBlob
+  type
+  row
+  col
+  val
 }
 
 fragment CommitBlob on Commit {

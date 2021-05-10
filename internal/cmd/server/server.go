@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/99designs/gqlgen/graphql"
+
 	"github.com/99designs/gqlgen/graphql/handler/extension"
 
 	"github.com/99designs/gqlgen/graphql/handler/transport"
@@ -34,6 +36,13 @@ func Serve() error {
 	h.SetRecoverFunc(func(ctx context.Context, err interface{}) (userMessage error) {
 		zap.L().Error("Panic error when processing GraphQL.", zap.Any("error", err))
 		return ErrDefaultGraphQL
+	})
+	h.AroundFields(func(ctx context.Context, next graphql.Resolver) (res interface{}, err error) {
+		rc := graphql.GetFieldContext(ctx)
+		zap.L().Info("Entered", zap.String("object", rc.Object), zap.String("fieldName", rc.Field.Name))
+		res, err = next(ctx)
+		zap.L().Info("Left", zap.String("object", rc.Object), zap.String("fieldName", rc.Field.Name), zap.Any("result", res), zap.Error(err))
+		return res, err
 	})
 	h.AddTransport(transport.POST{})
 	h.AddTransport(transport.Websocket{

@@ -76,39 +76,6 @@ func (r *queryResolver) Commit(ctx context.Context, id string) (*model.Commit, e
 	return commit, nil
 }
 
-func (r *refHeadResolver) Commit(ctx context.Context, obj *model.RefHead) (*model.Commit, error) {
-	commit, ok := r.commits[obj.CommitID]
-	if !ok {
-		return nil, gqlerrors.ErrCommitNotFound(obj.CommitID)
-	}
-
-	return commit, nil
-}
-
-func (r *refHeadResolver) Commits(ctx context.Context, obj *model.RefHead) ([]*model.Commit, error) {
-	commits := make([]*model.Commit, 0)
-	if obj.CommitID == "" {
-		return commits, nil
-	}
-
-	for commitID := obj.CommitID; commitID != ""; {
-		commit, ok := r.commits[commitID]
-		if !ok {
-			return nil, gqlerrors.ErrCommitNotFound(commitID)
-		}
-		commits = append(commits, commit)
-
-		// Process last commit
-		if commit.ParentID == nil {
-			return commits, nil
-		} else {
-			commitID = *commit.ParentID
-		}
-	}
-
-	return commits, nil
-}
-
 func (r *subscriptionResolver) CommitAdded(ctx context.Context, refHeadID string) (<-chan *model.Commit, error) {
 	refHead, ok := r.refHeads[refHeadID]
 	if !ok {
@@ -149,9 +116,6 @@ func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResol
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
-// RefHead returns generated.RefHeadResolver implementation.
-func (r *Resolver) RefHead() generated.RefHeadResolver { return &refHeadResolver{r} }
-
 // Subscription returns generated.SubscriptionResolver implementation.
 func (r *Resolver) Subscription() generated.SubscriptionResolver { return &subscriptionResolver{r} }
 
@@ -161,6 +125,5 @@ func (r *Resolver) Sudoku() generated.SudokuResolver { return &sudokuResolver{r}
 type commitResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
-type refHeadResolver struct{ *Resolver }
 type subscriptionResolver struct{ *Resolver }
 type sudokuResolver struct{ *Resolver }

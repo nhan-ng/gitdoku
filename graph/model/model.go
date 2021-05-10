@@ -21,10 +21,11 @@ type Commit struct {
 }
 
 type RefHead struct {
-	ID       string `json:"id"`
-	CommitID string `json:"commitId"`
+	ID       string    `json:"id"`
+	CommitID string    `json:"commitId"`
+	Commit   *Commit   `json:"commit"`
+	Commits  []*Commit `json:"commits"`
 
-	commit    *Commit
 	observers map[string]chan *Commit
 	lock      sync.Mutex
 }
@@ -48,8 +49,9 @@ func NewRefHead(id string, commit *Commit) *RefHead {
 	return &RefHead{
 		ID:       id,
 		CommitID: commit.ID,
+		Commit:   commit,
+		Commits:  []*Commit{commit},
 
-		commit:    commit,
 		observers: make(map[string]chan *Commit),
 	}
 }
@@ -64,7 +66,7 @@ func (r *RefHead) AddCommit(commit *Commit) {
 
 	// TODO: Make it better without a lot of allocations
 	// Handle commit
-	blob := r.commit.Blob
+	blob := r.Commit.Blob
 	switch commit.Type {
 	case CommitTypeAddFill:
 		cell := blob.Board[commit.Row][commit.Col]
@@ -108,7 +110,8 @@ func (r *RefHead) AddCommit(commit *Commit) {
 	commit.ParentID = &r.CommitID
 	commit.Blob = blob
 	r.CommitID = commit.ID
-	r.commit = commit
+	r.Commit = commit
+	r.Commits = append(r.Commits, commit)
 
 	// Notify observers
 	for _, observer := range r.observers {

@@ -128,30 +128,53 @@ export type GetSudokuQuery = (
     & Pick<Sudoku, 'board'>
     & { refHead: (
       { __typename: 'RefHead' }
-      & Pick<RefHead, 'id'>
-      & { commits: Array<(
-        { __typename: 'Commit' }
-        & Pick<Commit, 'id' | 'row' | 'col' | 'val'>
-      )> }
+      & LiteRefHeadFragment
     ) }
   ) }
 );
 
-export type GetRefHeadQueryVariables = Exact<{
+export type GetLiteRefHeadQueryVariables = Exact<{
   id: Scalars['ID'];
 }>;
 
 
-export type GetRefHeadQuery = (
+export type GetLiteRefHeadQuery = (
   { __typename: 'Query' }
   & { refHead: (
     { __typename: 'RefHead' }
-    & { commit: (
-      { __typename: 'Commit' }
-      & Pick<Commit, 'id' | 'type' | 'row' | 'col' | 'val'>
-      & CommitBlobFragment
-    ) }
+    & LiteRefHeadFragment
   ) }
+);
+
+export type GetFullRefHeadQueryVariables = Exact<{
+  id: Scalars['ID'];
+}>;
+
+
+export type GetFullRefHeadQuery = (
+  { __typename: 'Query' }
+  & { refHead: (
+    { __typename: 'RefHead' }
+    & FullRefHeadFragment
+  ) }
+);
+
+export type LiteRefHeadFragment = (
+  { __typename: 'RefHead' }
+  & Pick<RefHead, 'id'>
+  & { commit: (
+    { __typename: 'Commit' }
+    & CommitFragment
+  ) }
+);
+
+export type FullRefHeadFragment = (
+  { __typename: 'RefHead' }
+  & { commits: Array<(
+    { __typename: 'Commit' }
+    & CommitFragment
+  )> }
+  & LiteRefHeadFragment
 );
 
 export type AddCommitMutationVariables = Exact<{
@@ -163,7 +186,7 @@ export type AddCommitMutation = (
   { __typename: 'Mutation' }
   & { commit: (
     { __typename: 'Commit' }
-    & CommitBlobFragment
+    & CommitFragment
   ) }
 );
 
@@ -176,8 +199,14 @@ export type OnCommitAddedSubscription = (
   { __typename: 'Subscription' }
   & { commitAdded: (
     { __typename: 'Commit' }
-    & CommitBlobFragment
+    & CommitFragment
   ) }
+);
+
+export type CommitFragment = (
+  { __typename: 'Commit' }
+  & Pick<Commit, 'id' | 'type' | 'row' | 'col' | 'val'>
+  & CommitBlobFragment
 );
 
 export type CommitBlobFragment = (
@@ -202,22 +231,43 @@ export const CommitBlobFragmentDoc = gql`
   }
 }
     `;
+export const CommitFragmentDoc = gql`
+    fragment Commit on Commit {
+  id
+  ...CommitBlob
+  type
+  row
+  col
+  val
+}
+    ${CommitBlobFragmentDoc}`;
+export const LiteRefHeadFragmentDoc = gql`
+    fragment LiteRefHead on RefHead {
+  id
+  commit {
+    ...Commit
+  }
+}
+    ${CommitFragmentDoc}`;
+export const FullRefHeadFragmentDoc = gql`
+    fragment FullRefHead on RefHead {
+  ...LiteRefHead
+  commits {
+    ...Commit
+  }
+}
+    ${LiteRefHeadFragmentDoc}
+${CommitFragmentDoc}`;
 export const GetSudokuDocument = gql`
     query GetSudoku {
   sudoku {
     board
     refHead {
-      id
-      commits {
-        id
-        row
-        col
-        val
-      }
+      ...LiteRefHead
     }
   }
 }
-    `;
+    ${LiteRefHeadFragmentDoc}`;
 
 /**
  * __useGetSudokuQuery__
@@ -245,55 +295,83 @@ export function useGetSudokuLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<
 export type GetSudokuQueryHookResult = ReturnType<typeof useGetSudokuQuery>;
 export type GetSudokuLazyQueryHookResult = ReturnType<typeof useGetSudokuLazyQuery>;
 export type GetSudokuQueryResult = Apollo.QueryResult<GetSudokuQuery, GetSudokuQueryVariables>;
-export const GetRefHeadDocument = gql`
-    query GetRefHead($id: ID!) {
+export const GetLiteRefHeadDocument = gql`
+    query GetLiteRefHead($id: ID!) {
   refHead(id: $id) {
-    commit {
-      id
-      ...CommitBlob
-      type
-      row
-      col
-      val
-    }
+    ...LiteRefHead
   }
 }
-    ${CommitBlobFragmentDoc}`;
+    ${LiteRefHeadFragmentDoc}`;
 
 /**
- * __useGetRefHeadQuery__
+ * __useGetLiteRefHeadQuery__
  *
- * To run a query within a React component, call `useGetRefHeadQuery` and pass it any options that fit your needs.
- * When your component renders, `useGetRefHeadQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * To run a query within a React component, call `useGetLiteRefHeadQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetLiteRefHeadQuery` returns an object from Apollo Client that contains loading, error, and data properties
  * you can use to render your UI.
  *
  * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
  *
  * @example
- * const { data, loading, error } = useGetRefHeadQuery({
+ * const { data, loading, error } = useGetLiteRefHeadQuery({
  *   variables: {
  *      id: // value for 'id'
  *   },
  * });
  */
-export function useGetRefHeadQuery(baseOptions: Apollo.QueryHookOptions<GetRefHeadQuery, GetRefHeadQueryVariables>) {
+export function useGetLiteRefHeadQuery(baseOptions: Apollo.QueryHookOptions<GetLiteRefHeadQuery, GetLiteRefHeadQueryVariables>) {
         const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useQuery<GetRefHeadQuery, GetRefHeadQueryVariables>(GetRefHeadDocument, options);
+        return Apollo.useQuery<GetLiteRefHeadQuery, GetLiteRefHeadQueryVariables>(GetLiteRefHeadDocument, options);
       }
-export function useGetRefHeadLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetRefHeadQuery, GetRefHeadQueryVariables>) {
+export function useGetLiteRefHeadLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetLiteRefHeadQuery, GetLiteRefHeadQueryVariables>) {
           const options = {...defaultOptions, ...baseOptions}
-          return Apollo.useLazyQuery<GetRefHeadQuery, GetRefHeadQueryVariables>(GetRefHeadDocument, options);
+          return Apollo.useLazyQuery<GetLiteRefHeadQuery, GetLiteRefHeadQueryVariables>(GetLiteRefHeadDocument, options);
         }
-export type GetRefHeadQueryHookResult = ReturnType<typeof useGetRefHeadQuery>;
-export type GetRefHeadLazyQueryHookResult = ReturnType<typeof useGetRefHeadLazyQuery>;
-export type GetRefHeadQueryResult = Apollo.QueryResult<GetRefHeadQuery, GetRefHeadQueryVariables>;
+export type GetLiteRefHeadQueryHookResult = ReturnType<typeof useGetLiteRefHeadQuery>;
+export type GetLiteRefHeadLazyQueryHookResult = ReturnType<typeof useGetLiteRefHeadLazyQuery>;
+export type GetLiteRefHeadQueryResult = Apollo.QueryResult<GetLiteRefHeadQuery, GetLiteRefHeadQueryVariables>;
+export const GetFullRefHeadDocument = gql`
+    query GetFullRefHead($id: ID!) {
+  refHead(id: $id) {
+    ...FullRefHead
+  }
+}
+    ${FullRefHeadFragmentDoc}`;
+
+/**
+ * __useGetFullRefHeadQuery__
+ *
+ * To run a query within a React component, call `useGetFullRefHeadQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetFullRefHeadQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetFullRefHeadQuery({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useGetFullRefHeadQuery(baseOptions: Apollo.QueryHookOptions<GetFullRefHeadQuery, GetFullRefHeadQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<GetFullRefHeadQuery, GetFullRefHeadQueryVariables>(GetFullRefHeadDocument, options);
+      }
+export function useGetFullRefHeadLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetFullRefHeadQuery, GetFullRefHeadQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<GetFullRefHeadQuery, GetFullRefHeadQueryVariables>(GetFullRefHeadDocument, options);
+        }
+export type GetFullRefHeadQueryHookResult = ReturnType<typeof useGetFullRefHeadQuery>;
+export type GetFullRefHeadLazyQueryHookResult = ReturnType<typeof useGetFullRefHeadLazyQuery>;
+export type GetFullRefHeadQueryResult = Apollo.QueryResult<GetFullRefHeadQuery, GetFullRefHeadQueryVariables>;
 export const AddCommitDocument = gql`
     mutation AddCommit($input: CommitInput!) {
   commit(input: $input) {
-    ...CommitBlob
+    ...Commit
   }
 }
-    ${CommitBlobFragmentDoc}`;
+    ${CommitFragmentDoc}`;
 export type AddCommitMutationFn = Apollo.MutationFunction<AddCommitMutation, AddCommitMutationVariables>;
 
 /**
@@ -323,10 +401,10 @@ export type AddCommitMutationOptions = Apollo.BaseMutationOptions<AddCommitMutat
 export const OnCommitAddedDocument = gql`
     subscription OnCommitAdded($refHeadId: ID!) {
   commitAdded(refHeadId: $refHeadId) {
-    ...CommitBlob
+    ...Commit
   }
 }
-    ${CommitBlobFragmentDoc}`;
+    ${CommitFragmentDoc}`;
 
 /**
  * __useOnCommitAddedSubscription__

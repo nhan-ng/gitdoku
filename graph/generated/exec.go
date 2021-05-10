@@ -39,7 +39,6 @@ type ResolverRoot interface {
 	Commit() CommitResolver
 	Mutation() MutationResolver
 	Query() QueryResolver
-	RefHead() RefHeadResolver
 	Subscription() SubscriptionResolver
 	Sudoku() SudokuResolver
 }
@@ -107,10 +106,6 @@ type QueryResolver interface {
 	Sudoku(ctx context.Context) (*model.Sudoku, error)
 	RefHead(ctx context.Context, id string) (*model.RefHead, error)
 	Commit(ctx context.Context, id string) (*model.Commit, error)
-}
-type RefHeadResolver interface {
-	Commit(ctx context.Context, obj *model.RefHead) (*model.Commit, error)
-	Commits(ctx context.Context, obj *model.RefHead) ([]*model.Commit, error)
 }
 type SubscriptionResolver interface {
 	CommitAdded(ctx context.Context, refHeadID string) (<-chan *model.Commit, error)
@@ -470,7 +465,6 @@ type RefHead {
   id: ID!
   commitId: ID!
   commit: Commit!
-
   commits: [Commit!]!
 }
 
@@ -1338,14 +1332,14 @@ func (ec *executionContext) _RefHead_commit(ctx context.Context, field graphql.C
 		Object:     "RefHead",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.RefHead().Commit(rctx, obj)
+		return obj.Commit, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1373,14 +1367,14 @@ func (ec *executionContext) _RefHead_commits(ctx context.Context, field graphql.
 		Object:     "RefHead",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.RefHead().Commits(rctx, obj)
+		return obj.Commits, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2947,41 +2941,23 @@ func (ec *executionContext) _RefHead(ctx context.Context, sel ast.SelectionSet, 
 		case "id":
 			out.Values[i] = ec._RefHead_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "commitId":
 			out.Values[i] = ec._RefHead_commitId(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "commit":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._RefHead_commit(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
+			out.Values[i] = ec._RefHead_commit(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "commits":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._RefHead_commits(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
+			out.Values[i] = ec._RefHead_commits(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

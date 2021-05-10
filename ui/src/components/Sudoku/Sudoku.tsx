@@ -5,14 +5,15 @@ import {
 } from "../../__generated__/types";
 import styled from "styled-components";
 import React, { useState } from "react";
+import { useRefHeadContext } from "../../hooks";
 
-const backgroundColor = "#FFF";
-const blue = "hsl(210, 88%, 56%)";
+// const backgroundColor = "#FFF";
+// const blue = "hsl(210, 88%, 56%)";
 const grey = "hsl(213, 30%, 29%)";
 const greyLight = "hsl(213, 30%, 59%)";
 const greyLighter = "hsl(213, 30%, 79%)";
-const orange = "hsl(34, 26%, 89%)";
-const orangeDark = "hsl(34, 76%, 89%)";
+// const orange = "hsl(34, 26%, 89%)";
+// const orangeDark = "hsl(34, 76%, 89%)";
 
 const SudokuTable = styled.table`
   font-size: 26px;
@@ -41,35 +42,49 @@ const SudokuCell = styled.td<SudokuCellProps>`
   }
 `;
 
-export type SudokuProps = {
-  refHeadId: string;
-  board: Cell[][];
-};
-
 type SelectedCell = {
   row: number;
   col: number;
 };
 
-export function Sudoku(props: SudokuProps) {
-  const { board, refHeadId } = props;
+export type SudokuProps = {
+  board: Cell[][];
+};
+
+export function Sudoku({ board }: SudokuProps) {
+  const refHeadId = useRefHeadContext();
   const [selectedCell, setSelectedCell] = useState<SelectedCell>();
   const [addCommit] = useAddCommitMutation();
 
   function onCellClicked(row: number, col: number) {
-    setSelectedCell({ row, col });
+    if (!selectedCell || selectedCell.row !== row || selectedCell.col !== col) {
+      setSelectedCell({ row, col });
+    }
   }
 
   async function onKeyDown(e: React.KeyboardEvent<HTMLTableElement>) {
     e.preventDefault();
-    if (selectedCell && e.key >= "1" && e.key <= "9") {
+    console.log("Key down", e.key);
+    if (!selectedCell) {
+      return;
+    }
+
+    const action =
+      e.key >= "1" && e.key <= "9"
+        ? CommitType.AddFill
+        : e.key === "0" || e.key === "Backspace" || e.key === "Delete"
+        ? CommitType.RemoveFill
+        : CommitType.Unknown;
+
+    if (action !== CommitType.Unknown) {
+      console.log("Add new commit", action);
       await addCommit({
         variables: {
           input: {
             row: selectedCell.row,
             col: selectedCell.col,
-            val: parseInt(e.key, 10),
-            type: CommitType.AddFill,
+            val: parseInt(e.key, 10) || 0,
+            type: action,
             refHeadId: refHeadId,
           },
         },

@@ -1,49 +1,62 @@
 import { Sudoku } from "components/Sudoku";
-import React, { useState } from "react";
+import { RefHeadContextProvider } from "contexts/RefHeadContextProvider";
 import {
-  CommitType,
-  GetRefHeadDocument,
-  useAddCommitMutation,
-  useGetRefHeadQuery,
-  useOnCommitAddedSubscription,
+  OnCommitAddedDocument,
+  OnCommitAddedSubscription,
+  OnCommitAddedSubscriptionVariables,
+  useGetFullRefHeadQuery,
 } from "__generated__/types";
-
-type SelectedCell = {
-  row: number;
-  col: number;
-};
+import { History } from "components/History";
+import { useEffect } from "react";
 
 export function Game() {
-  const { data, error, loading } = useGetRefHeadQuery({
+  const { data, error, loading, subscribeToMore } = useGetFullRefHeadQuery({
     variables: {
       id: "master",
     },
   });
-  const [selectedCell, setSelectedCell] = useState<SelectedCell>();
+  useEffect(() => {
+    return subscribeToMore<
+      OnCommitAddedSubscription,
+      OnCommitAddedSubscriptionVariables
+    >({
+      document: OnCommitAddedDocument,
+      variables: {
+        refHeadId: "master",
+      },
+      updateQuery: (prev, { subscriptionData }) => {
+        if (!subscriptionData) {
+          return prev;
+        }
+        const newCommit = subscriptionData.data.commitAdded;
 
-  const { data: commitAddedData } = useOnCommitAddedSubscription({
-    variables: {
-      refHeadId: "master",
-    },
-  });
+        if (prev.refHead.commits.find((c) => c.id === newCommit.id)) {
+          return prev;
+        }
 
-  console.log("Render");
+        return {
+          __typename: prev.__typename,
+          refHead: {
+            ...prev.refHead,
+            commit: newCommit,
+            commits: [...prev.refHead.commits, newCommit],
+          },
+        };
+      },
+    });
+  }, [subscribeToMore]);
 
-  if (loading || error) {
+  if (loading || error || !data) {
     return <>Loading or Error: {error}</>;
   }
 
-  if (!data) {
-    return <>Invalid state</>;
-  }
+  const board = data.refHead.commit.blob.board;
+  const commits = data.refHead.commits;
 
-  const board = commitAddedData
-    ? commitAddedData.commitAdded.blob.board
-    : data.refHead.commit.blob.board;
-
-  function onClick(row: number, col: number) {
-    setSelectedCell({ row, col });
-  }
-
-  return <Sudoku board={board} refHeadId="master" />;
+  return (
+    <RefHeadContextProvider id="master">
+      <Sudoku board={board} />
+      <History commits={commits} />
+    </RefHeadContextProvider>
+  );
 }
