@@ -6,24 +6,22 @@ import {
 import styled from "styled-components";
 import React, { useState } from "react";
 import { useRefHeadContext } from "../../hooks";
+import { Table, TableBody, TableRow, TableCell } from "@material-ui/core";
 
 // const backgroundColor = "#FFF";
 // const blue = "hsl(210, 88%, 56%)";
 const grey = "hsl(213, 30%, 29%)";
 const greyLight = "hsl(213, 30%, 59%)";
 const greyLighter = "hsl(213, 30%, 79%)";
-// const orange = "hsl(34, 26%, 89%)";
+const orange = "hsl(34, 26%, 89%)";
 // const orangeDark = "hsl(34, 76%, 89%)";
 
-const SudokuTable = styled.table`
-  font-size: 26px;
-  font-weight: "bold";
-  margin: 30px;
+const SudokuTable = styled(Table)`
   border: 2px solid ${grey};
   border-collapse: collapse;
 `;
 
-const SudokuRow = styled.tr`
+const SudokuRow = styled(TableRow)`
   &:nth-child(3n) {
     border-bottom: 2px solid ${grey};
   }
@@ -31,12 +29,14 @@ const SudokuRow = styled.tr`
 
 type SudokuCellProps = {
   immutable: boolean;
+  isSelected: boolean;
 };
-const SudokuCell = styled.td<SudokuCellProps>`
+const SudokuCell = styled(TableCell)<SudokuCellProps>`
   border: 1px solid ${greyLighter};
-  padding: 12px 16px;
   cursor: pointer;
-  color: ${(prop) => (prop.immutable ? grey : greyLight)};
+  color: ${({ immutable }) => (immutable ? grey : greyLight)};
+  background-color: ${({ isSelected }) =>
+    isSelected ? orange : "transparent"};
   &:nth-child(3n) {
     border-right: 2px solid ${grey};
   }
@@ -57,10 +57,16 @@ export function Sudoku({ board }: SudokuProps) {
   const [addCommit] = useAddCommitMutation();
 
   function onCellClicked(row: number, col: number) {
-    if (!selectedCell || selectedCell.row !== row || selectedCell.col !== col) {
+    if (!selectedCell) {
       setSelectedCell({ row, col });
+    } else if (selectedCell.row !== row || selectedCell.col !== col) {
+      setSelectedCell({ row, col });
+    } else {
+      setSelectedCell(undefined);
     }
   }
+
+  console.log("rerender");
 
   async function onKeyDown(e: React.KeyboardEvent<HTMLTableElement>) {
     e.preventDefault();
@@ -78,30 +84,48 @@ export function Sudoku({ board }: SudokuProps) {
 
     if (action !== CommitType.Unknown) {
       console.log("Add new commit", action);
-      await addCommit({
-        variables: {
-          input: {
-            row: selectedCell.row,
-            col: selectedCell.col,
-            val: parseInt(e.key, 10) || 0,
-            type: action,
-            refHeadId: refHeadId,
+      try {
+        await addCommit({
+          variables: {
+            input: {
+              row: selectedCell.row,
+              col: selectedCell.col,
+              val: parseInt(e.key, 10) || 0,
+              type: action,
+              refHeadId: refHeadId,
+            },
           },
-        },
-      });
+        });
+      } catch (e) {
+        console.log(e);
+      }
     }
   }
 
   return (
     <SudokuTable onKeyDown={onKeyDown} tabIndex={0}>
-      <tbody>
+      <TableBody>
         {board.map((row, i) => {
           return (
             <SudokuRow key={`${i}`}>
               {row.map((cell, j) => {
+                const isSelected =
+                  (selectedCell &&
+                    selectedCell.row === i &&
+                    selectedCell.col === j) ||
+                  false;
+                if (isSelected) {
+                  console.log(
+                    "Selected cell",
+                    JSON.stringify(selectedCell),
+                    i,
+                    j
+                  );
+                }
                 return (
                   <SudokuCell
                     immutable={cell.immutable}
+                    isSelected={isSelected}
                     key={`${i}${j}`}
                     onClick={() => onCellClicked(i, j)}
                   >
@@ -112,7 +136,7 @@ export function Sudoku({ board }: SudokuProps) {
             </SudokuRow>
           );
         })}
-      </tbody>
+      </TableBody>
     </SudokuTable>
   );
 }

@@ -7,7 +7,8 @@ import {
   useGetFullRefHeadQuery,
 } from "__generated__/types";
 import { History } from "components/History";
-import { useEffect } from "react";
+import React, { useEffect } from "react";
+import { Grid } from "@material-ui/core";
 
 export function Game() {
   const { data, error, loading, subscribeToMore } = useGetFullRefHeadQuery({
@@ -51,12 +52,18 @@ export function Game() {
   }
 
   const board = data.refHead.commit.blob.board;
-  const commits = data.refHead.commits;
+  const commits = data.refHead.commits.slice().reverse();
 
   return (
     <RefHeadContextProvider id="master">
-      <Sudoku board={board} />
-      <History commits={commits} />
+      <Grid container direction="row" justify="center" alignItems="flex-start">
+        <Grid item sm={8}>
+          <Sudoku board={board} />
+        </Grid>
+        <Grid item sm={4}>
+          <History commits={commits} />
+        </Grid>
+      </Grid>
     </RefHeadContextProvider>
   );
 }

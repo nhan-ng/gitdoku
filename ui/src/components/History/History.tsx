@@ -1,19 +1,38 @@
+import { ListItem, ListItemText } from "@material-ui/core";
+import React from "react";
 import { CommitFragment } from "../../__generated__/types";
+import { FixedSizeList, ListChildComponentProps } from "react-window";
 
 export type HistoryProps = {
   commits: CommitFragment[];
 };
 
+type HistoryRowProps = {
+  commit: CommitFragment;
+};
+
 export const History = ({ commits }: HistoryProps) => {
+  const HistoryRow = ({ index, style }: ListChildComponentProps) => {
+    const commit = commits[index];
+    return (
+      <ListItem button style={style} key={index}>
+        <ListItemText
+          primary={`[${commit.row + 1}][${commit.col + 1}]: ${commit.type} ${
+            commit.val
+          }`}
+        />
+      </ListItem>
+    );
+  };
+
   return (
-    <ul>
-      {commits.map((commit) => {
-        return (
-          <li key={commit.id}>
-            [{commit.row + 1}][{commit.col + 1}]: +{commit.val}
-          </li>
-        );
-      })}
-    </ul>
+    <FixedSizeList
+      height={500}
+      width={600}
+      itemSize={50}
+      itemCount={commits.length}
+    >
+      {HistoryRow}
+    </FixedSizeList>
   );
 };
