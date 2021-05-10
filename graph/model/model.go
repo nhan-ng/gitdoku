@@ -3,36 +3,39 @@ package model
 import (
 	"sort"
 	"sync"
+	"time"
 
+	"github.com/jinzhu/copier"
 	"github.com/nhan-ng/sudoku/graph/gqlerrors"
 )
 
 type AddObserverCleanUpFunc func()
 
 type Commit struct {
-	ID       string     `json:"id"`
-	ParentID *string    `json:"parentId"`
-	BlobID   string     `json:"blobId"`
-	Type     CommitType `json:"type"`
-	Row      int        `json:"row"`
-	Col      int        `json:"col"`
-	Val      int        `json:"val"`
-	Blob     Blob       `json:"blob"`
+	ID              string     `json:"id"`
+	ParentID        *string    `json:"parentId"`
+	BlobID          string     `json:"blobId"`
+	Type            CommitType `json:"type"`
+	Row             int        `json:"row"`
+	Col             int        `json:"col"`
+	Val             int        `json:"val"`
+	Blob            Blob       `json:"blob"`
+	AuthorID        string     `json:"authorId"`
+	AuthorTimestamp time.Time  `json:"authorTimestamp"`
 }
 
-type RefHead struct {
-	ID       string    `json:"id"`
-	CommitID string    `json:"commitId"`
-	Commit   *Commit   `json:"commit"`
-	Commits  []*Commit `json:"commits"`
+type Branch struct {
+	ID       string  `json:"id"`
+	CommitID string  `json:"commitId"`
+	Commit   *Commit `json:"commit"`
 
 	observers map[string]chan *Commit
 	lock      sync.Mutex
 }
 
 type Sudoku struct {
-	RefHeadID string  `json:"refHeadId"`
-	Board     [][]int `json:"board"`
+	BranchID string  `json:"branchId"`
+	Board    [][]int `json:"board"`
 }
 
 type Cell struct {
@@ -45,12 +48,11 @@ type Blob struct {
 	Board [][]Cell `json:"board"`
 }
 
-func NewRefHead(id string, commit *Commit) *RefHead {
-	return &RefHead{
+func NewBranch(id string, commit *Commit) *Branch {
+	return &Branch{
 		ID:       id,
 		CommitID: commit.ID,
 		Commit:   commit,
-		Commits:  []*Commit{commit},
 
 		observers: make(map[string]chan *Commit),
 	}
@@ -60,13 +62,14 @@ func (s *Sudoku) HasConflictWithFixedBoard(row, col int) bool {
 	return s.Board[row][col] != 0
 }
 
-func (r *RefHead) AddCommit(commit *Commit) {
-	r.lock.Lock()
-	defer r.lock.Unlock()
+func (b *Branch) AddCommit(commit *Commit) {
+	b.lock.Lock()
+	defer b.lock.Unlock()
 
 	// TODO: Make it better without a lot of allocations
 	// Handle commit
-	blob := r.Commit.Blob
+	var blob Blob
+	copier.CopyWithOption(&blob, &b.Commit.Blob, copier.Option{DeepCopy: true})
 	switch commit.Type {
 	case CommitTypeAddFill:
 		cell := blob.Board[commit.Row][commit.Col]
@@ -107,36 +110,37 @@ func (r *RefHead) AddCommit(commit *Commit) {
 	}
 
 	// Add the commit
-	commit.ParentID = &r.CommitID
+	parentID := b.CommitID
+	commit.ParentID = &parentID
 	commit.Blob = blob
-	r.CommitID = commit.ID
-	r.Commit = commit
-	r.Commits = append(r.Commits, commit)
+	commit.AuthorTimestamp = time.Now()
+	b.CommitID = commit.ID
+	b.Commit = commit
 
 	// Notify observers
-	for _, observer := range r.observers {
+	for _, observer := range b.observers {
 		observer <- commit
 	}
 }
 
-func (r *RefHead) AddObserver(observerID string) (<-chan *Commit, AddObserverCleanUpFunc, error) {
-	r.lock.Lock()
-	defer r.lock.Unlock()
+func (b *Branch) AddObserver(observerID string) (<-chan *Commit, AddObserverCleanUpFunc, error) {
+	b.lock.Lock()
+	defer b.lock.Unlock()
 
-	_, exists := r.observers[observerID]
+	_, exists := b.observers[observerID]
 	if exists {
-		return nil, nil, gqlerrors.ErrRefHeadObserverAlreadyExists(observerID, r.ID)
+		return nil, nil, gqlerrors.ErrBranchObserverAlreadyExists(observerID, b.ID)
 	}
 
 	// Initialize the commits channel
 	commitsChan := make(chan *Commit, 1)
-	r.observers[observerID] = commitsChan
+	b.observers[observerID] = commitsChan
 
 	// And its clean up func
 	cleanUpFunc := func() {
-		r.lock.Lock()
-		defer r.lock.Unlock()
-		delete(r.observers, observerID)
+		b.lock.Lock()
+		defer b.lock.Unlock()
+		delete(b.observers, observerID)
 	}
 
 	return commitsChan, cleanUpFunc, nil

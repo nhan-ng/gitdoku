@@ -8,12 +8,18 @@ import (
 	"strconv"
 )
 
-type CommitInput struct {
-	RefHeadID string     `json:"refHeadId"`
-	Type      CommitType `json:"type"`
-	Row       int        `json:"row"`
-	Col       int        `json:"col"`
-	Val       int        `json:"val"`
+type AddBranchInput struct {
+	ID       string  `json:"id"`
+	CommitID *string `json:"commitId"`
+	BranchID *string `json:"branchId"`
+}
+
+type AddCommitInput struct {
+	BranchID string     `json:"branchId"`
+	Type     CommitType `json:"type"`
+	Row      int        `json:"row"`
+	Col      int        `json:"col"`
+	Val      int        `json:"val"`
 }
 
 type CommitType string

@@ -14,10 +14,14 @@ func ErrBlobtNotFound(id string) error {
 	return gqlerror.Errorf("blob with id '%s' not found", id)
 }
 
-func ErrRefHeadNotFound(id string) error {
-	return gqlerror.Errorf("ref head with id '%s' not found", id)
+func ErrBranchNotFound(id string) error {
+	return gqlerror.Errorf("branch with id '%s' not found", id)
 }
 
-func ErrRefHeadObserverAlreadyExists(observerID, refHeadID string) error {
-	return gqlerror.Errorf("observer '%s' for ref head '%s' already exists", observerID, refHeadID)
+func ErrBranchObserverAlreadyExists(observerID, BranchID string) error {
+	return gqlerror.Errorf("observer '%s' for branch '%s' already exists", observerID, BranchID)
+}
+
+func ErrBranchAlreadyExists(BranchID string) error {
+	return gqlerror.Errorf("branch with id '%s' already exists", BranchID)
 }

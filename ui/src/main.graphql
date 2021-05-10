@@ -1,46 +1,58 @@
 query GetSudoku {
   sudoku {
     board
-    refHead {
-      ...LiteRefHead
+    branch {
+      ...LiteBranch
     }
   }
 }
 
-query GetLiteRefHead($id: ID!) {
-  refHead(id: $id) {
-    ...LiteRefHead
+query GetLiteBranch($id: ID!) {
+  branch(id: $id) {
+    ...LiteBranch
   }
 }
 
-query GetFullRefHead($id: ID!) {
-  refHead(id: $id) {
-    ...FullRefHead
+query GetFullBranch($id: ID!) {
+  branch(id: $id) {
+    ...FullBranch
   }
 }
 
-fragment LiteRefHead on RefHead {
+query GetBranches {
+  branches {
+    ...LiteBranch
+  }
+}
+
+fragment LiteBranch on Branch {
   id
   commit {
     ...Commit
   }
 }
 
-fragment FullRefHead on RefHead {
-  ...LiteRefHead
+fragment FullBranch on Branch {
+  ...LiteBranch
   commits {
     ...Commit
   }
 }
 
-mutation AddCommit($input: CommitInput!) {
-  commit(input: $input) {
+mutation AddCommit($input: AddCommitInput!) {
+  addCommit(input: $input) {
     ...Commit
   }
 }
 
-subscription OnCommitAdded($refHeadId: ID!) {
-  commitAdded(refHeadId: $refHeadId) {
+mutation AddBranch($input: AddBranchInput!) {
+  addBranch(input: $input) {
+    ...LiteBranch
+  }
+}
+
+subscription OnCommitAdded($branchId: ID!) {
+  commitAdded(branchId: $branchId) {
     ...Commit
   }
 }

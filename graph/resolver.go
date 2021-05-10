@@ -28,7 +28,7 @@ const sampleSudoku = `070308100
 type Resolver struct {
 	sudoku   *model.Sudoku
 	commits  map[string]*model.Commit
-	refHeads map[string]*model.RefHead
+	branches map[string]*model.Branch
 }
 
 func NewResolver() (*generated.Config, error) {
@@ -37,7 +37,7 @@ func NewResolver() (*generated.Config, error) {
 		return nil, fmt.Errorf("failed to create a Sudoku: %w", err)
 	}
 
-	defaultRefHead := "master"
+	defaultBranch := "master"
 	initialCommit := &model.Commit{
 		ID:   uuid.NewString(),
 		Type: model.CommitTypeInitial,
@@ -45,19 +45,19 @@ func NewResolver() (*generated.Config, error) {
 			Board: convertBoard(sudoku.Board),
 		},
 	}
-	initialRefHead := model.NewRefHead(defaultRefHead, initialCommit)
+	initialBranch := model.NewBranch(defaultBranch, initialCommit)
 	r := &Resolver{
 		commits: map[string]*model.Commit{
 			initialCommit.ID: initialCommit,
 		},
-		refHeads: map[string]*model.RefHead{
-			defaultRefHead: initialRefHead,
+		branches: map[string]*model.Branch{
+			defaultBranch: initialBranch,
 		},
 	}
 
 	r.sudoku = &model.Sudoku{
-		RefHeadID: defaultRefHead,
-		Board:     sudoku.Board,
+		BranchID: defaultBranch,
+		Board:    sudoku.Board,
 	}
 	return &generated.Config{
 		Resolvers: r,

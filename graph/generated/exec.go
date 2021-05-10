@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
@@ -36,6 +37,7 @@ type Config struct {
 }
 
 type ResolverRoot interface {
+	Branch() BranchResolver
 	Commit() CommitResolver
 	Mutation() MutationResolver
 	Query() QueryResolver
@@ -51,6 +53,13 @@ type ComplexityRoot struct {
 		Board func(childComplexity int) int
 	}
 
+	Branch struct {
+		Commit   func(childComplexity int) int
+		CommitID func(childComplexity int) int
+		Commits  func(childComplexity int) int
+		ID       func(childComplexity int) int
+	}
+
 	Cell struct {
 		Immutable func(childComplexity int) int
 		Notes     func(childComplexity int) int
@@ -58,60 +67,62 @@ type ComplexityRoot struct {
 	}
 
 	Commit struct {
-		Blob     func(childComplexity int) int
-		Col      func(childComplexity int) int
-		ID       func(childComplexity int) int
-		Parent   func(childComplexity int) int
-		ParentID func(childComplexity int) int
-		Row      func(childComplexity int) int
-		Type     func(childComplexity int) int
-		Val      func(childComplexity int) int
+		AuthorID        func(childComplexity int) int
+		AuthorTimestamp func(childComplexity int) int
+		Blob            func(childComplexity int) int
+		Col             func(childComplexity int) int
+		ID              func(childComplexity int) int
+		Parent          func(childComplexity int) int
+		ParentID        func(childComplexity int) int
+		Row             func(childComplexity int) int
+		Type            func(childComplexity int) int
+		Val             func(childComplexity int) int
 	}
 
 	Mutation struct {
-		Commit func(childComplexity int, input model.CommitInput) int
+		AddBranch func(childComplexity int, input model.AddBranchInput) int
+		AddCommit func(childComplexity int, input model.AddCommitInput) int
 	}
 
 	Query struct {
-		Commit  func(childComplexity int, id string) int
-		RefHead func(childComplexity int, id string) int
-		Sudoku  func(childComplexity int) int
-	}
-
-	RefHead struct {
-		Commit   func(childComplexity int) int
-		CommitID func(childComplexity int) int
-		Commits  func(childComplexity int) int
-		ID       func(childComplexity int) int
+		Branch   func(childComplexity int, id string) int
+		Branches func(childComplexity int) int
+		Commit   func(childComplexity int, id string) int
+		Sudoku   func(childComplexity int) int
 	}
 
 	Subscription struct {
-		CommitAdded func(childComplexity int, refHeadID string) int
+		CommitAdded func(childComplexity int, branchID string) int
 	}
 
 	Sudoku struct {
-		Board     func(childComplexity int) int
-		RefHead   func(childComplexity int) int
-		RefHeadID func(childComplexity int) int
+		Board    func(childComplexity int) int
+		Branch   func(childComplexity int) int
+		BranchID func(childComplexity int) int
 	}
 }
 
+type BranchResolver interface {
+	Commits(ctx context.Context, obj *model.Branch) ([]*model.Commit, error)
+}
 type CommitResolver interface {
 	Parent(ctx context.Context, obj *model.Commit) (*model.Commit, error)
 }
 type MutationResolver interface {
-	Commit(ctx context.Context, input model.CommitInput) (*model.Commit, error)
+	AddCommit(ctx context.Context, input model.AddCommitInput) (*model.Commit, error)
+	AddBranch(ctx context.Context, input model.AddBranchInput) (*model.Branch, error)
 }
 type QueryResolver interface {
 	Sudoku(ctx context.Context) (*model.Sudoku, error)
-	RefHead(ctx context.Context, id string) (*model.RefHead, error)
+	Branch(ctx context.Context, id string) (*model.Branch, error)
+	Branches(ctx context.Context) ([]*model.Branch, error)
 	Commit(ctx context.Context, id string) (*model.Commit, error)
 }
 type SubscriptionResolver interface {
-	CommitAdded(ctx context.Context, refHeadID string) (<-chan *model.Commit, error)
+	CommitAdded(ctx context.Context, branchID string) (<-chan *model.Commit, error)
 }
 type SudokuResolver interface {
-	RefHead(ctx context.Context, obj *model.Sudoku) (*model.RefHead, error)
+	Branch(ctx context.Context, obj *model.Sudoku) (*model.Branch, error)
 }
 
 type executableSchema struct {
@@ -136,6 +147,34 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Blob.Board(childComplexity), true
 
+	case "Branch.commit":
+		if e.complexity.Branch.Commit == nil {
+			break
+		}
+
+		return e.complexity.Branch.Commit(childComplexity), true
+
+	case "Branch.commitId":
+		if e.complexity.Branch.CommitID == nil {
+			break
+		}
+
+		return e.complexity.Branch.CommitID(childComplexity), true
+
+	case "Branch.commits":
+		if e.complexity.Branch.Commits == nil {
+			break
+		}
+
+		return e.complexity.Branch.Commits(childComplexity), true
+
+	case "Branch.id":
+		if e.complexity.Branch.ID == nil {
+			break
+		}
+
+		return e.complexity.Branch.ID(childComplexity), true
+
 	case "Cell.immutable":
 		if e.complexity.Cell.Immutable == nil {
 			break
@@ -156,6 +195,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Cell.Val(childComplexity), true
+
+	case "Commit.authorId":
+		if e.complexity.Commit.AuthorID == nil {
+			break
+		}
+
+		return e.complexity.Commit.AuthorID(childComplexity), true
+
+	case "Commit.authorTimestamp":
+		if e.complexity.Commit.AuthorTimestamp == nil {
+			break
+		}
+
+		return e.complexity.Commit.AuthorTimestamp(childComplexity), true
 
 	case "Commit.blob":
 		if e.complexity.Commit.Blob == nil {
@@ -213,17 +266,48 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Commit.Val(childComplexity), true
 
-	case "Mutation.commit":
-		if e.complexity.Mutation.Commit == nil {
+	case "Mutation.addBranch":
+		if e.complexity.Mutation.AddBranch == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_commit_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation_addBranch_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.Commit(childComplexity, args["input"].(model.CommitInput)), true
+		return e.complexity.Mutation.AddBranch(childComplexity, args["input"].(model.AddBranchInput)), true
+
+	case "Mutation.addCommit":
+		if e.complexity.Mutation.AddCommit == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_addCommit_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AddCommit(childComplexity, args["input"].(model.AddCommitInput)), true
+
+	case "Query.branch":
+		if e.complexity.Query.Branch == nil {
+			break
+		}
+
+		args, err := ec.field_Query_branch_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Branch(childComplexity, args["id"].(string)), true
+
+	case "Query.branches":
+		if e.complexity.Query.Branches == nil {
+			break
+		}
+
+		return e.complexity.Query.Branches(childComplexity), true
 
 	case "Query.commit":
 		if e.complexity.Query.Commit == nil {
@@ -237,52 +321,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Commit(childComplexity, args["id"].(string)), true
 
-	case "Query.refHead":
-		if e.complexity.Query.RefHead == nil {
-			break
-		}
-
-		args, err := ec.field_Query_refHead_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.RefHead(childComplexity, args["id"].(string)), true
-
 	case "Query.sudoku":
 		if e.complexity.Query.Sudoku == nil {
 			break
 		}
 
 		return e.complexity.Query.Sudoku(childComplexity), true
-
-	case "RefHead.commit":
-		if e.complexity.RefHead.Commit == nil {
-			break
-		}
-
-		return e.complexity.RefHead.Commit(childComplexity), true
-
-	case "RefHead.commitId":
-		if e.complexity.RefHead.CommitID == nil {
-			break
-		}
-
-		return e.complexity.RefHead.CommitID(childComplexity), true
-
-	case "RefHead.commits":
-		if e.complexity.RefHead.Commits == nil {
-			break
-		}
-
-		return e.complexity.RefHead.Commits(childComplexity), true
-
-	case "RefHead.id":
-		if e.complexity.RefHead.ID == nil {
-			break
-		}
-
-		return e.complexity.RefHead.ID(childComplexity), true
 
 	case "Subscription.commitAdded":
 		if e.complexity.Subscription.CommitAdded == nil {
@@ -294,7 +338,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Subscription.CommitAdded(childComplexity, args["refHeadId"].(string)), true
+		return e.complexity.Subscription.CommitAdded(childComplexity, args["branchId"].(string)), true
 
 	case "Sudoku.board":
 		if e.complexity.Sudoku.Board == nil {
@@ -303,19 +347,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Sudoku.Board(childComplexity), true
 
-	case "Sudoku.refHead":
-		if e.complexity.Sudoku.RefHead == nil {
+	case "Sudoku.branch":
+		if e.complexity.Sudoku.Branch == nil {
 			break
 		}
 
-		return e.complexity.Sudoku.RefHead(childComplexity), true
+		return e.complexity.Sudoku.Branch(childComplexity), true
 
-	case "Sudoku.refHeadId":
-		if e.complexity.Sudoku.RefHeadID == nil {
+	case "Sudoku.branchId":
+		if e.complexity.Sudoku.BranchID == nil {
 			break
 		}
 
-		return e.complexity.Sudoku.RefHeadID(childComplexity), true
+		return e.complexity.Sudoku.BranchID(childComplexity), true
 
 	}
 	return 0, false
@@ -400,24 +444,26 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 var sources = []*ast.Source{
 	{Name: "graph/schema.graphql", Input: `type Query {
   sudoku: Sudoku!
-  refHead(id: ID!): RefHead!
+  branch(id: ID!): Branch!
+  branches: [Branch!]!
   commit(id: ID!): Commit!
 }
 
 type Mutation {
-  commit(input: CommitInput!): Commit!
+  addCommit(input: AddCommitInput!): Commit!
+  addBranch(input: AddBranchInput!): Branch!
 }
 
 type Subscription {
-  commitAdded(refHeadId: ID!): Commit!
+  commitAdded(branchId: ID!): Commit!
 }
 
-input CommitInput {
+input AddCommitInput {
 #  authorId: ID!
 #  authorTimestamp: Time!
 #  committerId: ID!
 #  committerTimestamp: Time!
-  refHeadId: ID!
+  branchId: ID!
 
   type: CommitType!
   row: Int!
@@ -425,8 +471,16 @@ input CommitInput {
   val: Int!
 }
 
+input AddBranchInput {
+  id: ID!
+  commitId: ID
+  branchId: ID
+}
+
 type Commit {
   id: ID!
+  authorId: ID!
+  authorTimestamp: Time!
 #  authorId: ID!
 #  authorTimestamp: Time!
 #  committerId: ID!
@@ -461,7 +515,7 @@ type Cell {
   notes: [Int!]!
 }
 
-type RefHead {
+type Branch {
   id: ID!
   commitId: ID!
   commit: Commit!
@@ -469,8 +523,8 @@ type RefHead {
 }
 
 type Sudoku {
-  refHeadId: ID!
-  refHead: RefHead!
+  branchId: ID!
+  branch: Branch!
   board: [[Int!]!]!
 }
 
@@ -492,13 +546,28 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
 // region    ***************************** args.gotpl *****************************
 
-func (ec *executionContext) field_Mutation_commit_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Mutation_addBranch_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 model.CommitInput
+	var arg0 model.AddBranchInput
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNCommitInput2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCommitInput(ctx, tmp)
+		arg0, err = ec.unmarshalNAddBranchInput2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐAddBranchInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_addCommit_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.AddCommitInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNAddCommitInput2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐAddCommitInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -522,7 +591,7 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 	return args, nil
 }
 
-func (ec *executionContext) field_Query_commit_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Query_branch_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 string
@@ -537,7 +606,7 @@ func (ec *executionContext) field_Query_commit_args(ctx context.Context, rawArgs
 	return args, nil
 }
 
-func (ec *executionContext) field_Query_refHead_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Query_commit_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 string
@@ -556,14 +625,14 @@ func (ec *executionContext) field_Subscription_commitAdded_args(ctx context.Cont
 	var err error
 	args := map[string]interface{}{}
 	var arg0 string
-	if tmp, ok := rawArgs["refHeadId"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("refHeadId"))
+	if tmp, ok := rawArgs["branchId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("branchId"))
 		arg0, err = ec.unmarshalNID2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["refHeadId"] = arg0
+	args["branchId"] = arg0
 	return args, nil
 }
 
@@ -638,6 +707,146 @@ func (ec *executionContext) _Blob_board(ctx context.Context, field graphql.Colle
 	res := resTmp.([][]model.Cell)
 	fc.Result = res
 	return ec.marshalNCell2ᚕᚕgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCellᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Branch_id(ctx context.Context, field graphql.CollectedField, obj *model.Branch) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Branch",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Branch_commitId(ctx context.Context, field graphql.CollectedField, obj *model.Branch) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Branch",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CommitID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Branch_commit(ctx context.Context, field graphql.CollectedField, obj *model.Branch) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Branch",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Commit, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Commit)
+	fc.Result = res
+	return ec.marshalNCommit2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCommit(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Branch_commits(ctx context.Context, field graphql.CollectedField, obj *model.Branch) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Branch",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Branch().Commits(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Commit)
+	fc.Result = res
+	return ec.marshalNCommit2ᚕᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCommitᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Cell_immutable(ctx context.Context, field graphql.CollectedField, obj *model.Cell) (ret graphql.Marshaler) {
@@ -778,6 +987,76 @@ func (ec *executionContext) _Commit_id(ctx context.Context, field graphql.Collec
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Commit_authorId(ctx context.Context, field graphql.CollectedField, obj *model.Commit) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Commit",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AuthorID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Commit_authorTimestamp(ctx context.Context, field graphql.CollectedField, obj *model.Commit) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Commit",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AuthorTimestamp, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Commit_parentId(ctx context.Context, field graphql.CollectedField, obj *model.Commit) (ret graphql.Marshaler) {
@@ -1019,7 +1298,7 @@ func (ec *executionContext) _Commit_val(ctx context.Context, field graphql.Colle
 	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Mutation_commit(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Mutation_addCommit(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1036,7 +1315,7 @@ func (ec *executionContext) _Mutation_commit(ctx context.Context, field graphql.
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_commit_args(ctx, rawArgs)
+	args, err := ec.field_Mutation_addCommit_args(ctx, rawArgs)
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
@@ -1044,7 +1323,7 @@ func (ec *executionContext) _Mutation_commit(ctx context.Context, field graphql.
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().Commit(rctx, args["input"].(model.CommitInput))
+		return ec.resolvers.Mutation().AddCommit(rctx, args["input"].(model.AddCommitInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1059,6 +1338,48 @@ func (ec *executionContext) _Mutation_commit(ctx context.Context, field graphql.
 	res := resTmp.(*model.Commit)
 	fc.Result = res
 	return ec.marshalNCommit2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCommit(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_addBranch(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_addBranch_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().AddBranch(rctx, args["input"].(model.AddBranchInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Branch)
+	fc.Result = res
+	return ec.marshalNBranch2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐBranch(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_sudoku(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1096,7 +1417,7 @@ func (ec *executionContext) _Query_sudoku(ctx context.Context, field graphql.Col
 	return ec.marshalNSudoku2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐSudoku(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Query_refHead(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Query_branch(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1113,7 +1434,7 @@ func (ec *executionContext) _Query_refHead(ctx context.Context, field graphql.Co
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Query_refHead_args(ctx, rawArgs)
+	args, err := ec.field_Query_branch_args(ctx, rawArgs)
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
@@ -1121,7 +1442,7 @@ func (ec *executionContext) _Query_refHead(ctx context.Context, field graphql.Co
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().RefHead(rctx, args["id"].(string))
+		return ec.resolvers.Query().Branch(rctx, args["id"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1133,9 +1454,44 @@ func (ec *executionContext) _Query_refHead(ctx context.Context, field graphql.Co
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.RefHead)
+	res := resTmp.(*model.Branch)
 	fc.Result = res
-	return ec.marshalNRefHead2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐRefHead(ctx, field.Selections, res)
+	return ec.marshalNBranch2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐBranch(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_branches(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Branches(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Branch)
+	fc.Result = res
+	return ec.marshalNBranch2ᚕᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐBranchᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_commit(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1251,146 +1607,6 @@ func (ec *executionContext) _Query___schema(ctx context.Context, field graphql.C
 	return ec.marshalO__Schema2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐSchema(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _RefHead_id(ctx context.Context, field graphql.CollectedField, obj *model.RefHead) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "RefHead",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _RefHead_commitId(ctx context.Context, field graphql.CollectedField, obj *model.RefHead) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "RefHead",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.CommitID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _RefHead_commit(ctx context.Context, field graphql.CollectedField, obj *model.RefHead) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "RefHead",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Commit, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.Commit)
-	fc.Result = res
-	return ec.marshalNCommit2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCommit(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _RefHead_commits(ctx context.Context, field graphql.CollectedField, obj *model.RefHead) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "RefHead",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Commits, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]*model.Commit)
-	fc.Result = res
-	return ec.marshalNCommit2ᚕᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCommitᚄ(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _Subscription_commitAdded(ctx context.Context, field graphql.CollectedField) (ret func() graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -1416,7 +1632,7 @@ func (ec *executionContext) _Subscription_commitAdded(ctx context.Context, field
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Subscription().CommitAdded(rctx, args["refHeadId"].(string))
+		return ec.resolvers.Subscription().CommitAdded(rctx, args["branchId"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1443,7 +1659,7 @@ func (ec *executionContext) _Subscription_commitAdded(ctx context.Context, field
 	}
 }
 
-func (ec *executionContext) _Sudoku_refHeadId(ctx context.Context, field graphql.CollectedField, obj *model.Sudoku) (ret graphql.Marshaler) {
+func (ec *executionContext) _Sudoku_branchId(ctx context.Context, field graphql.CollectedField, obj *model.Sudoku) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1461,7 +1677,7 @@ func (ec *executionContext) _Sudoku_refHeadId(ctx context.Context, field graphql
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.RefHeadID, nil
+		return obj.BranchID, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1478,7 +1694,7 @@ func (ec *executionContext) _Sudoku_refHeadId(ctx context.Context, field graphql
 	return ec.marshalNID2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Sudoku_refHead(ctx context.Context, field graphql.CollectedField, obj *model.Sudoku) (ret graphql.Marshaler) {
+func (ec *executionContext) _Sudoku_branch(ctx context.Context, field graphql.CollectedField, obj *model.Sudoku) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1496,7 +1712,7 @@ func (ec *executionContext) _Sudoku_refHead(ctx context.Context, field graphql.C
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Sudoku().RefHead(rctx, obj)
+		return ec.resolvers.Sudoku().Branch(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1508,9 +1724,9 @@ func (ec *executionContext) _Sudoku_refHead(ctx context.Context, field graphql.C
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.RefHead)
+	res := resTmp.(*model.Branch)
 	fc.Result = res
-	return ec.marshalNRefHead2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐRefHead(ctx, field.Selections, res)
+	return ec.marshalNBranch2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐBranch(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Sudoku_board(ctx context.Context, field graphql.CollectedField, obj *model.Sudoku) (ret graphql.Marshaler) {
@@ -2635,17 +2851,53 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 
 // region    **************************** input.gotpl *****************************
 
-func (ec *executionContext) unmarshalInputCommitInput(ctx context.Context, obj interface{}) (model.CommitInput, error) {
-	var it model.CommitInput
+func (ec *executionContext) unmarshalInputAddBranchInput(ctx context.Context, obj interface{}) (model.AddBranchInput, error) {
+	var it model.AddBranchInput
 	var asMap = obj.(map[string]interface{})
 
 	for k, v := range asMap {
 		switch k {
-		case "refHeadId":
+		case "id":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("refHeadId"))
-			it.RefHeadID, err = ec.unmarshalNID2string(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			it.ID, err = ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "commitId":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("commitId"))
+			it.CommitID, err = ec.unmarshalOID2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "branchId":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("branchId"))
+			it.BranchID, err = ec.unmarshalOID2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputAddCommitInput(ctx context.Context, obj interface{}) (model.AddCommitInput, error) {
+	var it model.AddCommitInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "branchId":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("branchId"))
+			it.BranchID, err = ec.unmarshalNID2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -2722,6 +2974,57 @@ func (ec *executionContext) _Blob(ctx context.Context, sel ast.SelectionSet, obj
 	return out
 }
 
+var branchImplementors = []string{"Branch"}
+
+func (ec *executionContext) _Branch(ctx context.Context, sel ast.SelectionSet, obj *model.Branch) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, branchImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Branch")
+		case "id":
+			out.Values[i] = ec._Branch_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "commitId":
+			out.Values[i] = ec._Branch_commitId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "commit":
+			out.Values[i] = ec._Branch_commit(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "commits":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Branch_commits(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var cellImplementors = []string{"Cell"}
 
 func (ec *executionContext) _Cell(ctx context.Context, sel ast.SelectionSet, obj *model.Cell) graphql.Marshaler {
@@ -2772,6 +3075,16 @@ func (ec *executionContext) _Commit(ctx context.Context, sel ast.SelectionSet, o
 			out.Values[i] = graphql.MarshalString("Commit")
 		case "id":
 			out.Values[i] = ec._Commit_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "authorId":
+			out.Values[i] = ec._Commit_authorId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "authorTimestamp":
+			out.Values[i] = ec._Commit_authorTimestamp(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
@@ -2839,8 +3152,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Mutation")
-		case "commit":
-			out.Values[i] = ec._Mutation_commit(ctx, field)
+		case "addCommit":
+			out.Values[i] = ec._Mutation_addCommit(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "addBranch":
+			out.Values[i] = ec._Mutation_addBranch(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -2884,7 +3202,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				}
 				return res
 			})
-		case "refHead":
+		case "branch":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
 				defer func() {
@@ -2892,7 +3210,21 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_refHead(ctx, field)
+				res = ec._Query_branch(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "branches":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_branches(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -2916,48 +3248,6 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			out.Values[i] = ec._Query___type(ctx, field)
 		case "__schema":
 			out.Values[i] = ec._Query___schema(ctx, field)
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
-var refHeadImplementors = []string{"RefHead"}
-
-func (ec *executionContext) _RefHead(ctx context.Context, sel ast.SelectionSet, obj *model.RefHead) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, refHeadImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("RefHead")
-		case "id":
-			out.Values[i] = ec._RefHead_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "commitId":
-			out.Values[i] = ec._RefHead_commitId(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "commit":
-			out.Values[i] = ec._RefHead_commit(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "commits":
-			out.Values[i] = ec._RefHead_commits(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3000,12 +3290,12 @@ func (ec *executionContext) _Sudoku(ctx context.Context, sel ast.SelectionSet, o
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Sudoku")
-		case "refHeadId":
-			out.Values[i] = ec._Sudoku_refHeadId(ctx, field, obj)
+		case "branchId":
+			out.Values[i] = ec._Sudoku_branchId(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
-		case "refHead":
+		case "branch":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
 				defer func() {
@@ -3013,7 +3303,7 @@ func (ec *executionContext) _Sudoku(ctx context.Context, sel ast.SelectionSet, o
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Sudoku_refHead(ctx, field, obj)
+				res = ec._Sudoku_branch(ctx, field, obj)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -3280,6 +3570,16 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 
 // region    ***************************** type.gotpl *****************************
 
+func (ec *executionContext) unmarshalNAddBranchInput2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐAddBranchInput(ctx context.Context, v interface{}) (model.AddBranchInput, error) {
+	res, err := ec.unmarshalInputAddBranchInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNAddCommitInput2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐAddCommitInput(ctx context.Context, v interface{}) (model.AddCommitInput, error) {
+	res, err := ec.unmarshalInputAddCommitInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalNBlob2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐBlob(ctx context.Context, sel ast.SelectionSet, v model.Blob) graphql.Marshaler {
 	return ec._Blob(ctx, sel, &v)
 }
@@ -3297,6 +3597,57 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNBranch2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐBranch(ctx context.Context, sel ast.SelectionSet, v model.Branch) graphql.Marshaler {
+	return ec._Branch(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNBranch2ᚕᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐBranchᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Branch) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNBranch2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐBranch(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
+func (ec *executionContext) marshalNBranch2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐBranch(ctx context.Context, sel ast.SelectionSet, v *model.Branch) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Branch(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNCell2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCell(ctx context.Context, sel ast.SelectionSet, v model.Cell) graphql.Marshaler {
@@ -3428,11 +3779,6 @@ func (ec *executionContext) marshalNCommit2ᚖgithubᚗcomᚋnhanᚑngᚋsudoku�
 	return ec._Commit(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNCommitInput2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCommitInput(ctx context.Context, v interface{}) (model.CommitInput, error) {
-	res, err := ec.unmarshalInputCommitInput(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
 func (ec *executionContext) unmarshalNCommitType2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCommitType(ctx context.Context, v interface{}) (model.CommitType, error) {
 	var res model.CommitType
 	err := res.UnmarshalGQL(v)
@@ -3533,20 +3879,6 @@ func (ec *executionContext) marshalNInt2ᚕᚕintᚄ(ctx context.Context, sel as
 	return ret
 }
 
-func (ec *executionContext) marshalNRefHead2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐRefHead(ctx context.Context, sel ast.SelectionSet, v model.RefHead) graphql.Marshaler {
-	return ec._RefHead(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNRefHead2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐRefHead(ctx context.Context, sel ast.SelectionSet, v *model.RefHead) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return ec._RefHead(ctx, sel, v)
-}
-
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {
 	res, err := graphql.UnmarshalString(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -3574,6 +3906,21 @@ func (ec *executionContext) marshalNSudoku2ᚖgithubᚗcomᚋnhanᚑngᚋsudoku�
 		return graphql.Null
 	}
 	return ec._Sudoku(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNTime2timeᚐTime(ctx context.Context, v interface{}) (time.Time, error) {
+	res, err := graphql.UnmarshalTime(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNTime2timeᚐTime(ctx context.Context, sel ast.SelectionSet, v time.Time) graphql.Marshaler {
+	res := graphql.MarshalTime(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+	}
+	return res
 }
 
 func (ec *executionContext) unmarshalN_FieldSet2string(ctx context.Context, v interface{}) (string, error) {

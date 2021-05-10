@@ -1,69 +1,54 @@
+import { Button, Grid } from "@material-ui/core";
 import { Sudoku } from "components/Sudoku";
-import { RefHeadContextProvider } from "contexts/RefHeadContextProvider";
+import React, { useState } from "react";
+import { BranchList } from "components/BranchList";
 import {
-  OnCommitAddedDocument,
-  OnCommitAddedSubscription,
-  OnCommitAddedSubscriptionVariables,
-  useGetFullRefHeadQuery,
-} from "__generated__/types";
-import { History } from "components/History";
-import React, { useEffect } from "react";
-import { Grid } from "@material-ui/core";
+  GetBranchesDocument,
+  useAddBranchMutation,
+} from "../../__generated__/types";
 
-export function Game() {
-  const { data, error, loading, subscribeToMore } = useGetFullRefHeadQuery({
-    variables: {
-      id: "master",
-    },
+export const Game = () => {
+  const [branchId, setBranchId] = useState("master");
+  const [addBranch] = useAddBranchMutation({
+    refetchQueries: [
+      {
+        query: GetBranchesDocument,
+      },
+    ],
   });
-  useEffect(() => {
-    return subscribeToMore<
-      OnCommitAddedSubscription,
-      OnCommitAddedSubscriptionVariables
-    >({
-      document: OnCommitAddedDocument,
-      variables: {
-        refHeadId: "master",
-      },
-      updateQuery: (prev, { subscriptionData }) => {
-        if (!subscriptionData) {
-          return prev;
-        }
-        const newCommit = subscriptionData.data.commitAdded;
 
-        if (prev.refHead.commits.find((c) => c.id === newCommit.id)) {
-          return prev;
-        }
-
-        return {
-          __typename: prev.__typename,
-          refHead: {
-            ...prev.refHead,
-            commit: newCommit,
-            commits: [...prev.refHead.commits, newCommit],
-          },
-        };
-      },
-    });
-  }, [subscribeToMore]);
-
-  if (loading || error || !data) {
-    return <>Loading or Error: {error}</>;
-  }
-
-  const board = data.refHead.commit.blob.board;
-  const commits = data.refHead.commits.slice().reverse();
+  console.log("Branch", branchId);
 
   return (
-    <RefHeadContextProvider id="master">
-      <Grid container direction="row" justify="center" alignItems="flex-start">
-        <Grid item sm={8}>
-          <Sudoku board={board} />
-        </Grid>
-        <Grid item sm={4}>
-          <History commits={commits} />
-        </Grid>
+    <Grid container>
+      <Grid item md={12}>
+        <Sudoku branchId={branchId} />
       </Grid>
-    </RefHeadContextProvider>
+      <Grid item md={12}>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={async () => {
+            try {
+              await addBranch({
+                variables: {
+                  input: {
+                    id: `${Date.now()}`,
+                    branchId: branchId,
+                  },
+                },
+              });
+            } catch (e) {
+              console.log("Failed to add branch", e);
+            }
+          }}
+        >
+          Create new branch
+        </Button>
+      </Grid>
+      <Grid item md={12}>
+        <BranchList onBranchClicked={setBranchId} />
+      </Grid>
+    </Grid>
   );
-}
+};

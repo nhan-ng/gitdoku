@@ -5,12 +5,31 @@ package graph
 
 import (
 	"context"
+	"sort"
 
 	"github.com/google/uuid"
 	"github.com/nhan-ng/sudoku/graph/generated"
 	"github.com/nhan-ng/sudoku/graph/gqlerrors"
 	"github.com/nhan-ng/sudoku/graph/model"
 )
+
+func (r *branchResolver) Commits(ctx context.Context, obj *model.Branch) ([]*model.Commit, error) {
+	commits := make([]*model.Commit, 0)
+	for commit := obj.Commit; commit != nil; {
+		commits = append(commits, commit)
+		if parentID := commit.ParentID; parentID == nil {
+			commit = nil
+		} else {
+			var ok bool
+			commit, ok = r.commits[*parentID]
+			if !ok {
+				return nil, gqlerrors.ErrCommitNotFound(*parentID)
+			}
+		}
+	}
+
+	return commits, nil
+}
 
 func (r *commitResolver) Parent(ctx context.Context, obj *model.Commit) (*model.Commit, error) {
 	if obj.ParentID == nil {
@@ -24,10 +43,10 @@ func (r *commitResolver) Parent(ctx context.Context, obj *model.Commit) (*model.
 	return commit, nil
 }
 
-func (r *mutationResolver) Commit(ctx context.Context, input model.CommitInput) (*model.Commit, error) {
-	refHead, ok := r.refHeads[input.RefHeadID]
+func (r *mutationResolver) AddCommit(ctx context.Context, input model.AddCommitInput) (*model.Commit, error) {
+	branch, ok := r.branches[input.BranchID]
 	if !ok {
-		return nil, gqlerrors.ErrRefHeadNotFound(input.RefHeadID)
+		return nil, gqlerrors.ErrBranchNotFound(input.BranchID)
 	}
 
 	// Validate
@@ -43,28 +62,72 @@ func (r *mutationResolver) Commit(ctx context.Context, input model.CommitInput) 
 
 	// Create a commit
 	commit := &model.Commit{
-		ID:   uuid.NewString(),
-		Type: input.Type,
-		Row:  input.Row,
-		Col:  input.Col,
-		Val:  input.Val,
+		ID:       uuid.NewString(),
+		AuthorID: "me",
+		Type:     input.Type,
+		Row:      input.Row,
+		Col:      input.Col,
+		Val:      input.Val,
 	}
-	refHead.AddCommit(commit)
+	branch.AddCommit(commit)
 	r.commits[commit.ID] = commit
 
 	return commit, nil
+}
+
+func (r *mutationResolver) AddBranch(ctx context.Context, input model.AddBranchInput) (*model.Branch, error) {
+	// Validate
+	_, ok := r.branches[input.ID]
+	if ok {
+		return nil, gqlerrors.ErrBranchAlreadyExists(input.ID)
+	}
+	if input.CommitID == nil && input.BranchID == nil {
+		return nil, gqlerrors.ErrInvalidInputCoordinate()
+	}
+
+	var commitID string
+	if input.CommitID != nil {
+		commitID = *input.CommitID
+	} else {
+		branch, ok := r.branches[*input.BranchID]
+		if !ok {
+			return nil, gqlerrors.ErrBranchNotFound(*input.BranchID)
+		}
+		commitID = branch.CommitID
+	}
+
+	// Add a new ref head
+	commit, ok := r.commits[commitID]
+	if !ok {
+		return nil, gqlerrors.ErrCommitNotFound(commitID)
+	}
+	branch := model.NewBranch(input.ID, commit)
+	r.branches[input.ID] = branch
+	return branch, nil
 }
 
 func (r *queryResolver) Sudoku(ctx context.Context) (*model.Sudoku, error) {
 	return r.sudoku, nil
 }
 
-func (r *queryResolver) RefHead(ctx context.Context, id string) (*model.RefHead, error) {
-	refHead, ok := r.refHeads[id]
+func (r *queryResolver) Branch(ctx context.Context, id string) (*model.Branch, error) {
+	branch, ok := r.branches[id]
 	if !ok {
-		return nil, gqlerrors.ErrRefHeadNotFound(id)
+		return nil, gqlerrors.ErrBranchNotFound(id)
 	}
-	return refHead, nil
+	return branch, nil
+}
+
+func (r *queryResolver) Branches(ctx context.Context) ([]*model.Branch, error) {
+	branches := make([]*model.Branch, 0, len(r.branches))
+	for _, branch := range r.branches {
+		branches = append(branches, branch)
+	}
+	sort.SliceStable(branches, func(i, j int) bool {
+		// Sort by timestamp desc
+		return branches[i].Commit.AuthorTimestamp.After(branches[j].Commit.AuthorTimestamp)
+	})
+	return branches, nil
 }
 
 func (r *queryResolver) Commit(ctx context.Context, id string) (*model.Commit, error) {
@@ -76,15 +139,15 @@ func (r *queryResolver) Commit(ctx context.Context, id string) (*model.Commit, e
 	return commit, nil
 }
 
-func (r *subscriptionResolver) CommitAdded(ctx context.Context, refHeadID string) (<-chan *model.Commit, error) {
-	refHead, ok := r.refHeads[refHeadID]
+func (r *subscriptionResolver) CommitAdded(ctx context.Context, branchID string) (<-chan *model.Commit, error) {
+	branch, ok := r.branches[branchID]
 	if !ok {
-		return nil, gqlerrors.ErrRefHeadNotFound(refHeadID)
+		return nil, gqlerrors.ErrBranchNotFound(branchID)
 	}
 
 	// Add a new observer
 	observerID := uuid.NewString()
-	commits, cleanUp, err := refHead.AddObserver(observerID)
+	commits, cleanUp, err := branch.AddObserver(observerID)
 	if err != nil {
 		return nil, err
 	}
@@ -98,14 +161,17 @@ func (r *subscriptionResolver) CommitAdded(ctx context.Context, refHeadID string
 	return commits, nil
 }
 
-func (r *sudokuResolver) RefHead(ctx context.Context, obj *model.Sudoku) (*model.RefHead, error) {
-	refHead, ok := r.refHeads[obj.RefHeadID]
+func (r *sudokuResolver) Branch(ctx context.Context, obj *model.Sudoku) (*model.Branch, error) {
+	branch, ok := r.branches[obj.BranchID]
 	if !ok {
-		return nil, gqlerrors.ErrRefHeadNotFound(obj.RefHeadID)
+		return nil, gqlerrors.ErrBranchNotFound(obj.BranchID)
 	}
 
-	return refHead, nil
+	return branch, nil
 }
+
+// Branch returns generated.BranchResolver implementation.
+func (r *Resolver) Branch() generated.BranchResolver { return &branchResolver{r} }
 
 // Commit returns generated.CommitResolver implementation.
 func (r *Resolver) Commit() generated.CommitResolver { return &commitResolver{r} }
@@ -122,6 +188,7 @@ func (r *Resolver) Subscription() generated.SubscriptionResolver { return &subsc
 // Sudoku returns generated.SudokuResolver implementation.
 func (r *Resolver) Sudoku() generated.SudokuResolver { return &sudokuResolver{r} }
 
+type branchResolver struct{ *Resolver }
 type commitResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }

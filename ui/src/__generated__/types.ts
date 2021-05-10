@@ -22,9 +22,31 @@ export type Scalars = {
 
 
 
+export type AddBranchInput = {
+  id: Scalars['ID'];
+  commitId?: Maybe<Scalars['ID']>;
+  branchId?: Maybe<Scalars['ID']>;
+};
+
+export type AddCommitInput = {
+  branchId: Scalars['ID'];
+  type: CommitType;
+  row: Scalars['Int'];
+  col: Scalars['Int'];
+  val: Scalars['Int'];
+};
+
 export type Blob = {
   __typename: 'Blob';
   board: Array<Array<Cell>>;
+};
+
+export type Branch = {
+  __typename: 'Branch';
+  id: Scalars['ID'];
+  commitId: Scalars['ID'];
+  commit: Commit;
+  commits: Array<Commit>;
 };
 
 export type Cell = {
@@ -46,14 +68,6 @@ export type Commit = {
   val: Scalars['Int'];
 };
 
-export type CommitInput = {
-  refHeadId: Scalars['ID'];
-  type: CommitType;
-  row: Scalars['Int'];
-  col: Scalars['Int'];
-  val: Scalars['Int'];
-};
-
 export enum CommitType {
   Unknown = 'UNKNOWN',
   Initial = 'INITIAL',
@@ -65,37 +79,36 @@ export enum CommitType {
 
 export type Mutation = {
   __typename: 'Mutation';
-  commit: Commit;
+  addCommit: Commit;
+  addBranch: Branch;
 };
 
 
-export type MutationCommitArgs = {
-  input: CommitInput;
+export type MutationAddCommitArgs = {
+  input: AddCommitInput;
+};
+
+
+export type MutationAddBranchArgs = {
+  input: AddBranchInput;
 };
 
 export type Query = {
   __typename: 'Query';
   sudoku: Sudoku;
-  refHead: RefHead;
+  branch: Branch;
+  branches: Array<Branch>;
   commit: Commit;
 };
 
 
-export type QueryRefHeadArgs = {
+export type QueryBranchArgs = {
   id: Scalars['ID'];
 };
 
 
 export type QueryCommitArgs = {
   id: Scalars['ID'];
-};
-
-export type RefHead = {
-  __typename: 'RefHead';
-  id: Scalars['ID'];
-  commitId: Scalars['ID'];
-  commit: Commit;
-  commits: Array<Commit>;
 };
 
 export type Subscription = {
@@ -105,13 +118,13 @@ export type Subscription = {
 
 
 export type SubscriptionCommitAddedArgs = {
-  refHeadId: Scalars['ID'];
+  branchId: Scalars['ID'];
 };
 
 export type Sudoku = {
   __typename: 'Sudoku';
-  refHeadId: Scalars['ID'];
-  refHead: RefHead;
+  branchId: Scalars['ID'];
+  branch: Branch;
   board: Array<Array<Scalars['Int']>>;
 };
 
@@ -126,72 +139,96 @@ export type GetSudokuQuery = (
   & { sudoku: (
     { __typename: 'Sudoku' }
     & Pick<Sudoku, 'board'>
-    & { refHead: (
-      { __typename: 'RefHead' }
-      & LiteRefHeadFragment
+    & { branch: (
+      { __typename: 'Branch' }
+      & LiteBranchFragment
     ) }
   ) }
 );
 
-export type GetLiteRefHeadQueryVariables = Exact<{
+export type GetLiteBranchQueryVariables = Exact<{
   id: Scalars['ID'];
 }>;
 
 
-export type GetLiteRefHeadQuery = (
+export type GetLiteBranchQuery = (
   { __typename: 'Query' }
-  & { refHead: (
-    { __typename: 'RefHead' }
-    & LiteRefHeadFragment
+  & { branch: (
+    { __typename: 'Branch' }
+    & LiteBranchFragment
   ) }
 );
 
-export type GetFullRefHeadQueryVariables = Exact<{
+export type GetFullBranchQueryVariables = Exact<{
   id: Scalars['ID'];
 }>;
 
 
-export type GetFullRefHeadQuery = (
+export type GetFullBranchQuery = (
   { __typename: 'Query' }
-  & { refHead: (
-    { __typename: 'RefHead' }
-    & FullRefHeadFragment
+  & { branch: (
+    { __typename: 'Branch' }
+    & FullBranchFragment
   ) }
 );
 
-export type LiteRefHeadFragment = (
-  { __typename: 'RefHead' }
-  & Pick<RefHead, 'id'>
+export type GetBranchesQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GetBranchesQuery = (
+  { __typename: 'Query' }
+  & { branches: Array<(
+    { __typename: 'Branch' }
+    & LiteBranchFragment
+  )> }
+);
+
+export type LiteBranchFragment = (
+  { __typename: 'Branch' }
+  & Pick<Branch, 'id'>
   & { commit: (
     { __typename: 'Commit' }
     & CommitFragment
   ) }
 );
 
-export type FullRefHeadFragment = (
-  { __typename: 'RefHead' }
+export type FullBranchFragment = (
+  { __typename: 'Branch' }
   & { commits: Array<(
     { __typename: 'Commit' }
     & CommitFragment
   )> }
-  & LiteRefHeadFragment
+  & LiteBranchFragment
 );
 
 export type AddCommitMutationVariables = Exact<{
-  input: CommitInput;
+  input: AddCommitInput;
 }>;
 
 
 export type AddCommitMutation = (
   { __typename: 'Mutation' }
-  & { commit: (
+  & { addCommit: (
     { __typename: 'Commit' }
     & CommitFragment
   ) }
 );
 
+export type AddBranchMutationVariables = Exact<{
+  input: AddBranchInput;
+}>;
+
+
+export type AddBranchMutation = (
+  { __typename: 'Mutation' }
+  & { addBranch: (
+    { __typename: 'Branch' }
+    & LiteBranchFragment
+  ) }
+);
+
 export type OnCommitAddedSubscriptionVariables = Exact<{
-  refHeadId: Scalars['ID'];
+  branchId: Scalars['ID'];
 }>;
 
 
@@ -241,33 +278,33 @@ export const CommitFragmentDoc = gql`
   val
 }
     ${CommitBlobFragmentDoc}`;
-export const LiteRefHeadFragmentDoc = gql`
-    fragment LiteRefHead on RefHead {
+export const LiteBranchFragmentDoc = gql`
+    fragment LiteBranch on Branch {
   id
   commit {
     ...Commit
   }
 }
     ${CommitFragmentDoc}`;
-export const FullRefHeadFragmentDoc = gql`
-    fragment FullRefHead on RefHead {
-  ...LiteRefHead
+export const FullBranchFragmentDoc = gql`
+    fragment FullBranch on Branch {
+  ...LiteBranch
   commits {
     ...Commit
   }
 }
-    ${LiteRefHeadFragmentDoc}
+    ${LiteBranchFragmentDoc}
 ${CommitFragmentDoc}`;
 export const GetSudokuDocument = gql`
     query GetSudoku {
   sudoku {
     board
-    refHead {
-      ...LiteRefHead
+    branch {
+      ...LiteBranch
     }
   }
 }
-    ${LiteRefHeadFragmentDoc}`;
+    ${LiteBranchFragmentDoc}`;
 
 /**
  * __useGetSudokuQuery__
@@ -295,79 +332,113 @@ export function useGetSudokuLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<
 export type GetSudokuQueryHookResult = ReturnType<typeof useGetSudokuQuery>;
 export type GetSudokuLazyQueryHookResult = ReturnType<typeof useGetSudokuLazyQuery>;
 export type GetSudokuQueryResult = Apollo.QueryResult<GetSudokuQuery, GetSudokuQueryVariables>;
-export const GetLiteRefHeadDocument = gql`
-    query GetLiteRefHead($id: ID!) {
-  refHead(id: $id) {
-    ...LiteRefHead
+export const GetLiteBranchDocument = gql`
+    query GetLiteBranch($id: ID!) {
+  branch(id: $id) {
+    ...LiteBranch
   }
 }
-    ${LiteRefHeadFragmentDoc}`;
+    ${LiteBranchFragmentDoc}`;
 
 /**
- * __useGetLiteRefHeadQuery__
+ * __useGetLiteBranchQuery__
  *
- * To run a query within a React component, call `useGetLiteRefHeadQuery` and pass it any options that fit your needs.
- * When your component renders, `useGetLiteRefHeadQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * To run a query within a React component, call `useGetLiteBranchQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetLiteBranchQuery` returns an object from Apollo Client that contains loading, error, and data properties
  * you can use to render your UI.
  *
  * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
  *
  * @example
- * const { data, loading, error } = useGetLiteRefHeadQuery({
+ * const { data, loading, error } = useGetLiteBranchQuery({
  *   variables: {
  *      id: // value for 'id'
  *   },
  * });
  */
-export function useGetLiteRefHeadQuery(baseOptions: Apollo.QueryHookOptions<GetLiteRefHeadQuery, GetLiteRefHeadQueryVariables>) {
+export function useGetLiteBranchQuery(baseOptions: Apollo.QueryHookOptions<GetLiteBranchQuery, GetLiteBranchQueryVariables>) {
         const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useQuery<GetLiteRefHeadQuery, GetLiteRefHeadQueryVariables>(GetLiteRefHeadDocument, options);
+        return Apollo.useQuery<GetLiteBranchQuery, GetLiteBranchQueryVariables>(GetLiteBranchDocument, options);
       }
-export function useGetLiteRefHeadLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetLiteRefHeadQuery, GetLiteRefHeadQueryVariables>) {
+export function useGetLiteBranchLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetLiteBranchQuery, GetLiteBranchQueryVariables>) {
           const options = {...defaultOptions, ...baseOptions}
-          return Apollo.useLazyQuery<GetLiteRefHeadQuery, GetLiteRefHeadQueryVariables>(GetLiteRefHeadDocument, options);
+          return Apollo.useLazyQuery<GetLiteBranchQuery, GetLiteBranchQueryVariables>(GetLiteBranchDocument, options);
         }
-export type GetLiteRefHeadQueryHookResult = ReturnType<typeof useGetLiteRefHeadQuery>;
-export type GetLiteRefHeadLazyQueryHookResult = ReturnType<typeof useGetLiteRefHeadLazyQuery>;
-export type GetLiteRefHeadQueryResult = Apollo.QueryResult<GetLiteRefHeadQuery, GetLiteRefHeadQueryVariables>;
-export const GetFullRefHeadDocument = gql`
-    query GetFullRefHead($id: ID!) {
-  refHead(id: $id) {
-    ...FullRefHead
+export type GetLiteBranchQueryHookResult = ReturnType<typeof useGetLiteBranchQuery>;
+export type GetLiteBranchLazyQueryHookResult = ReturnType<typeof useGetLiteBranchLazyQuery>;
+export type GetLiteBranchQueryResult = Apollo.QueryResult<GetLiteBranchQuery, GetLiteBranchQueryVariables>;
+export const GetFullBranchDocument = gql`
+    query GetFullBranch($id: ID!) {
+  branch(id: $id) {
+    ...FullBranch
   }
 }
-    ${FullRefHeadFragmentDoc}`;
+    ${FullBranchFragmentDoc}`;
 
 /**
- * __useGetFullRefHeadQuery__
+ * __useGetFullBranchQuery__
  *
- * To run a query within a React component, call `useGetFullRefHeadQuery` and pass it any options that fit your needs.
- * When your component renders, `useGetFullRefHeadQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * To run a query within a React component, call `useGetFullBranchQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetFullBranchQuery` returns an object from Apollo Client that contains loading, error, and data properties
  * you can use to render your UI.
  *
  * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
  *
  * @example
- * const { data, loading, error } = useGetFullRefHeadQuery({
+ * const { data, loading, error } = useGetFullBranchQuery({
  *   variables: {
  *      id: // value for 'id'
  *   },
  * });
  */
-export function useGetFullRefHeadQuery(baseOptions: Apollo.QueryHookOptions<GetFullRefHeadQuery, GetFullRefHeadQueryVariables>) {
+export function useGetFullBranchQuery(baseOptions: Apollo.QueryHookOptions<GetFullBranchQuery, GetFullBranchQueryVariables>) {
         const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useQuery<GetFullRefHeadQuery, GetFullRefHeadQueryVariables>(GetFullRefHeadDocument, options);
+        return Apollo.useQuery<GetFullBranchQuery, GetFullBranchQueryVariables>(GetFullBranchDocument, options);
       }
-export function useGetFullRefHeadLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetFullRefHeadQuery, GetFullRefHeadQueryVariables>) {
+export function useGetFullBranchLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetFullBranchQuery, GetFullBranchQueryVariables>) {
           const options = {...defaultOptions, ...baseOptions}
-          return Apollo.useLazyQuery<GetFullRefHeadQuery, GetFullRefHeadQueryVariables>(GetFullRefHeadDocument, options);
+          return Apollo.useLazyQuery<GetFullBranchQuery, GetFullBranchQueryVariables>(GetFullBranchDocument, options);
         }
-export type GetFullRefHeadQueryHookResult = ReturnType<typeof useGetFullRefHeadQuery>;
-export type GetFullRefHeadLazyQueryHookResult = ReturnType<typeof useGetFullRefHeadLazyQuery>;
-export type GetFullRefHeadQueryResult = Apollo.QueryResult<GetFullRefHeadQuery, GetFullRefHeadQueryVariables>;
+export type GetFullBranchQueryHookResult = ReturnType<typeof useGetFullBranchQuery>;
+export type GetFullBranchLazyQueryHookResult = ReturnType<typeof useGetFullBranchLazyQuery>;
+export type GetFullBranchQueryResult = Apollo.QueryResult<GetFullBranchQuery, GetFullBranchQueryVariables>;
+export const GetBranchesDocument = gql`
+    query GetBranches {
+  branches {
+    ...LiteBranch
+  }
+}
+    ${LiteBranchFragmentDoc}`;
+
+/**
+ * __useGetBranchesQuery__
+ *
+ * To run a query within a React component, call `useGetBranchesQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetBranchesQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetBranchesQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useGetBranchesQuery(baseOptions?: Apollo.QueryHookOptions<GetBranchesQuery, GetBranchesQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<GetBranchesQuery, GetBranchesQueryVariables>(GetBranchesDocument, options);
+      }
+export function useGetBranchesLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetBranchesQuery, GetBranchesQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<GetBranchesQuery, GetBranchesQueryVariables>(GetBranchesDocument, options);
+        }
+export type GetBranchesQueryHookResult = ReturnType<typeof useGetBranchesQuery>;
+export type GetBranchesLazyQueryHookResult = ReturnType<typeof useGetBranchesLazyQuery>;
+export type GetBranchesQueryResult = Apollo.QueryResult<GetBranchesQuery, GetBranchesQueryVariables>;
 export const AddCommitDocument = gql`
-    mutation AddCommit($input: CommitInput!) {
-  commit(input: $input) {
+    mutation AddCommit($input: AddCommitInput!) {
+  addCommit(input: $input) {
     ...Commit
   }
 }
@@ -398,9 +469,42 @@ export function useAddCommitMutation(baseOptions?: Apollo.MutationHookOptions<Ad
 export type AddCommitMutationHookResult = ReturnType<typeof useAddCommitMutation>;
 export type AddCommitMutationResult = Apollo.MutationResult<AddCommitMutation>;
 export type AddCommitMutationOptions = Apollo.BaseMutationOptions<AddCommitMutation, AddCommitMutationVariables>;
+export const AddBranchDocument = gql`
+    mutation AddBranch($input: AddBranchInput!) {
+  addBranch(input: $input) {
+    ...LiteBranch
+  }
+}
+    ${LiteBranchFragmentDoc}`;
+export type AddBranchMutationFn = Apollo.MutationFunction<AddBranchMutation, AddBranchMutationVariables>;
+
+/**
+ * __useAddBranchMutation__
+ *
+ * To run a mutation, you first call `useAddBranchMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useAddBranchMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [addBranchMutation, { data, loading, error }] = useAddBranchMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useAddBranchMutation(baseOptions?: Apollo.MutationHookOptions<AddBranchMutation, AddBranchMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<AddBranchMutation, AddBranchMutationVariables>(AddBranchDocument, options);
+      }
+export type AddBranchMutationHookResult = ReturnType<typeof useAddBranchMutation>;
+export type AddBranchMutationResult = Apollo.MutationResult<AddBranchMutation>;
+export type AddBranchMutationOptions = Apollo.BaseMutationOptions<AddBranchMutation, AddBranchMutationVariables>;
 export const OnCommitAddedDocument = gql`
-    subscription OnCommitAdded($refHeadId: ID!) {
-  commitAdded(refHeadId: $refHeadId) {
+    subscription OnCommitAdded($branchId: ID!) {
+  commitAdded(branchId: $branchId) {
     ...Commit
   }
 }
@@ -418,7 +522,7 @@ export const OnCommitAddedDocument = gql`
  * @example
  * const { data, loading, error } = useOnCommitAddedSubscription({
  *   variables: {
- *      refHeadId: // value for 'refHeadId'
+ *      branchId: // value for 'branchId'
  *   },
  * });
  */

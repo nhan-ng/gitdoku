@@ -1,23 +1,25 @@
 type Query {
   sudoku: Sudoku!
-  refHead(id: ID!): RefHead!
+  branch(id: ID!): Branch!
+  branches: [Branch!]!
   commit(id: ID!): Commit!
 }
 
 type Mutation {
-  commit(input: CommitInput!): Commit!
+  addCommit(input: AddCommitInput!): Commit!
+  addBranch(input: AddBranchInput!): Branch!
 }
 
 type Subscription {
-  commitAdded(refHeadId: ID!): Commit!
+  commitAdded(branchId: ID!): Commit!
 }
 
-input CommitInput {
+input AddCommitInput {
 #  authorId: ID!
 #  authorTimestamp: Time!
 #  committerId: ID!
 #  committerTimestamp: Time!
-  refHeadId: ID!
+  branchId: ID!
 
   type: CommitType!
   row: Int!
@@ -25,8 +27,16 @@ input CommitInput {
   val: Int!
 }
 
+input AddBranchInput {
+  id: ID!
+  commitId: ID
+  branchId: ID
+}
+
 type Commit {
   id: ID!
+  authorId: ID!
+  authorTimestamp: Time!
 #  authorId: ID!
 #  authorTimestamp: Time!
 #  committerId: ID!
@@ -61,7 +71,7 @@ type Cell {
   notes: [Int!]!
 }
 
-type RefHead {
+type Branch {
   id: ID!
   commitId: ID!
   commit: Commit!
@@ -69,8 +79,8 @@ type RefHead {
 }
 
 type Sudoku {
-  refHeadId: ID!
-  refHead: RefHead!
+  branchId: ID!
+  branch: Branch!
   board: [[Int!]!]!
 }
 
