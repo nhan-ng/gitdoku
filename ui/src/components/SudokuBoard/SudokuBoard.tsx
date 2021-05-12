@@ -14,7 +14,7 @@ const grey = "hsl(213, 30%, 29%)";
 const greyLight = "hsl(213, 30%, 59%)";
 const greyLighter = "hsl(213, 30%, 79%)";
 const orange = "hsl(34, 26%, 89%)";
-// const orangeDark = "hsl(34, 76%, 89%)";
+const orangeDark = "hsl(34, 76%, 89%)";
 
 type SudokuTableProps = {
   scale: number;
@@ -35,13 +35,14 @@ const SudokuRow = styled(TableRow)`
 type SudokuCellProps = {
   immutable: boolean;
   isSelected: boolean;
+  isPeered: boolean;
 };
 const SudokuCell = styled(TableCell)<SudokuCellProps>`
   border: 1px solid ${greyLighter};
   cursor: pointer;
   color: ${({ immutable }) => (immutable ? grey : greyLight)};
-  background-color: ${({ isSelected }) =>
-    isSelected ? orange : "transparent"};
+  background-color: ${({ isSelected, isPeered }) =>
+    isSelected ? orangeDark : isPeered ? orange : "transparent"};
   &:nth-child(3n) {
     border-right: 2px solid ${grey};
   }
@@ -112,6 +113,10 @@ export function SudokuBoard({ board, scale, readOnly }: SudokuBoardProps) {
     }
   }
 
+  const selectedVal = selectedCell
+    ? board[selectedCell.row][selectedCell.col].val
+    : 0;
+
   return (
     <SudokuTable onKeyDown={onKeyDown} tabIndex={0} scale={scale}>
       <TableBody>
@@ -132,10 +137,14 @@ export function SudokuBoard({ board, scale, readOnly }: SudokuBoardProps) {
                     j
                   );
                 }
+
+                const isPeered = selectedVal === cell.val && selectedVal !== 0;
+
                 return (
                   <SudokuCell
                     immutable={cell.immutable}
                     isSelected={isSelected}
+                    isPeered={isPeered}
                     key={`${i}${j}`}
                     onClick={() => onCellClicked(i, j)}
                   >
