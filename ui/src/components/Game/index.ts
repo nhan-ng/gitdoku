@@ -1,3 +1,4 @@
 export * from "./BranchList";
 export * from "./Game";
-export * from "./NewBranchButton";
+export * from "./MergeBranchControl";
+export * from "./NewBranchControl";

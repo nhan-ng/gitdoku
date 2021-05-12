@@ -1,4 +1,4 @@
-import { OutlinedInput } from "@material-ui/core";
+import { Grid, OutlinedInput } from "@material-ui/core";
 import {
   Button,
   ButtonGroup,
@@ -13,12 +13,17 @@ import {
 } from "@material-ui/core";
 import CallSplitIcon from "@material-ui/icons/CallSplit";
 import React, { useState } from "react";
+import styled from "styled-components";
 
-export type NewBranchButtonProps = {
+const SplitIcon = styled(CallSplitIcon)`
+  transform: rotate(90deg);
+`;
+
+export type NewBranchControlProps = {
   onSubmit: (branchId: string) => Promise<void>;
 };
 
-export const NewBranchButton = ({ onSubmit }: NewBranchButtonProps) => {
+export const NewBranchControl = ({ onSubmit }: NewBranchControlProps) => {
   const [branchId, setBranchId] = useState("");
 
   const handleChange = (
@@ -40,23 +45,20 @@ export const NewBranchButton = ({ onSubmit }: NewBranchButtonProps) => {
   const label = "Create New Branch";
 
   return (
-    <Paper component="form" onSubmit={handleSubmit}>
-      <FormControl variant="outlined">
-        <InputLabel htmlFor="new-branch-input">{label}</InputLabel>
-        <OutlinedInput
-          id="new-branch-input"
+    <Grid container>
+      <Grid item sm={10}>
+        <TextField
+          label={label}
           value={branchId}
           onChange={handleChange}
-          label={label}
-          endAdornment={
-            <InputAdornment position="end">
-              <IconButton onClick={handleSubmit} edge="end">
-                <CallSplitIcon />
-              </IconButton>
-            </InputAdornment>
-          }
+          variant="outlined"
         />
-      </FormControl>
-    </Paper>
+      </Grid>
+      <Grid item sm={2}>
+        <IconButton onClick={handleSubmit} edge="end" color="primary">
+          <SplitIcon />
+        </IconButton>
+      </Grid>
+    </Grid>
   );
 };

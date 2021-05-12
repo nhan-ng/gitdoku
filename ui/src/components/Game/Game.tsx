@@ -1,15 +1,20 @@
-import { Box, Button, Grid } from "@material-ui/core";
+import { Box, Button, Grid, LinearProgress } from "@material-ui/core";
 import { Sudoku } from "components/Sudoku";
 import React, { useState } from "react";
 import { BranchList } from ".";
 import {
   GetBranchesDocument,
   useAddBranchMutation,
+  useGetBranchesQuery,
 } from "../../__generated__/types";
-import { NewBranchButton } from ".";
+import { NewBranchControl } from ".";
+import { MergeBranchControl } from "./MergeBranchControl";
 
 export const Game = () => {
   const [branchId, setBranchId] = useState("master");
+  const { data, loading, error } = useGetBranchesQuery({
+    pollInterval: 5000,
+  });
   const [addBranch] = useAddBranchMutation({
     refetchQueries: [
       {
@@ -18,7 +23,11 @@ export const Game = () => {
     ],
   });
 
-  console.log("Branch", branchId);
+  if (loading || error || !data) {
+    return <LinearProgress />;
+  }
+
+  const branches = data.branches;
 
   return (
     <Grid container>
@@ -26,22 +35,29 @@ export const Game = () => {
         <Sudoku branchId={branchId} />
       </Grid>
       <Box my={6}>
-        <NewBranchButton
-          onSubmit={async (newBranchId: string) => {
-            await addBranch({
-              variables: {
-                input: {
-                  id: newBranchId,
-                  branchId: branchId,
+        <Box mb={3}>
+          <NewBranchControl
+            onSubmit={async (newBranchId: string) => {
+              await addBranch({
+                variables: {
+                  input: {
+                    id: newBranchId,
+                    branchId: branchId,
+                  },
                 },
-              },
-            });
-            setBranchId(newBranchId);
-          }}
+              });
+              setBranchId(newBranchId);
+            }}
+          />
+        </Box>
+        <MergeBranchControl
+          branchIds={branches
+            .map((branch) => branch.id)
+            .filter((id) => id !== branchId)}
         />
       </Box>
       <Grid item md={12}>
-        <BranchList onBranchClicked={setBranchId} />
+        <BranchList onBranchClicked={setBranchId} branches={branches} />
       </Grid>
     </Grid>
   );

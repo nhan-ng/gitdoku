@@ -7,24 +7,16 @@ import {
   LinearProgress,
 } from "@material-ui/core";
 import React from "react";
-import { useGetBranchesQuery } from "../../__generated__/types";
+import { Branch, useGetBranchesQuery } from "../../__generated__/types";
 import { SudokuBoard } from "../Sudoku";
 import SwapVertIcon from "@material-ui/icons/SwapVert";
 
 export type BranchListProps = {
+  branches: Pick<Branch, "id" | "commit">[];
   onBranchClicked: (branchId: string) => void;
 };
 
-export const BranchList = ({ onBranchClicked }: BranchListProps) => {
-  const { data, loading, error } = useGetBranchesQuery({
-    pollInterval: 5000,
-  });
-  if (loading || error || !data) {
-    return <LinearProgress />;
-  }
-
-  const branches = data.branches;
-
+export const BranchList = ({ branches, onBranchClicked }: BranchListProps) => {
   return (
     <GridList cellHeight="auto" cols={3} style={{ flexWrap: "nowrap" }}>
       {branches.map((branch) => (
