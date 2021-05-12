@@ -58,7 +58,7 @@ const SudokuCell = styled(TableCell)<SudokuCellProps>`
   font-weight: bolder;
   color: ${({ $immutable }) => ($immutable ? grey : greyLight)};
   background-color: ${({ $isSelected, $isPeered }) =>
-    $isSelected ? orange : $isPeered ? orangeDark : "transparent"};
+    $isSelected ? orangeDark : $isPeered ? orange : "transparent"};
   &:nth-child(3n) {
     border-right: 2px solid ${grey};
   }

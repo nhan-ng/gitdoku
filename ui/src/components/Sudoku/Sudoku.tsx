@@ -1,4 +1,4 @@
-import { SudokuBoard } from "components/SudokuBoard";
+import { History, SudokuBoard } from ".";
 import { BranchContextProvider } from "contexts/BranchContextProvider";
 import {
   OnCommitAddedDocument,
@@ -6,7 +6,6 @@ import {
   OnCommitAddedSubscriptionVariables,
   useGetFullBranchQuery,
 } from "__generated__/types";
-import { History } from "components/History";
 import React, { useEffect, useState } from "react";
 import { Button, Grid, Typography } from "@material-ui/core";
 import { AppLoading } from "components/AppLoading";

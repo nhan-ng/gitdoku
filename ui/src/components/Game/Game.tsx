@@ -1,11 +1,12 @@
-import { Button, Grid } from "@material-ui/core";
+import { Box, Button, Grid } from "@material-ui/core";
 import { Sudoku } from "components/Sudoku";
 import React, { useState } from "react";
-import { BranchList } from "components/BranchList";
+import { BranchList } from ".";
 import {
   GetBranchesDocument,
   useAddBranchMutation,
 } from "../../__generated__/types";
+import { NewBranchButton } from ".";
 
 export const Game = () => {
   const [branchId, setBranchId] = useState("master");
@@ -24,28 +25,21 @@ export const Game = () => {
       <Grid item md={12}>
         <Sudoku branchId={branchId} />
       </Grid>
-      <Grid item md={12}>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={async () => {
-            try {
-              await addBranch({
-                variables: {
-                  input: {
-                    id: `${Date.now()}`,
-                    branchId: branchId,
-                  },
+      <Box my={6}>
+        <NewBranchButton
+          onSubmit={async (newBranchId: string) => {
+            await addBranch({
+              variables: {
+                input: {
+                  id: newBranchId,
+                  branchId: branchId,
                 },
-              });
-            } catch (e) {
-              console.log("Failed to add branch", e);
-            }
+              },
+            });
+            setBranchId(newBranchId);
           }}
-        >
-          Create new branch
-        </Button>
-      </Grid>
+        />
+      </Box>
       <Grid item md={12}>
         <BranchList onBranchClicked={setBranchId} />
       </Grid>

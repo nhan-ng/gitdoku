@@ -8,8 +8,8 @@ import {
 } from "@material-ui/core";
 import React from "react";
 import { useGetBranchesQuery } from "../../__generated__/types";
-import { SudokuBoard } from "../SudokuBoard";
-import InfoIcon from "@material-ui/icons/Info";
+import { SudokuBoard } from "../Sudoku";
+import SwapVertIcon from "@material-ui/icons/SwapVert";
 
 export type BranchListProps = {
   onBranchClicked: (branchId: string) => void;
@@ -40,7 +40,7 @@ export const BranchList = ({ onBranchClicked }: BranchListProps) => {
             title={branch.id}
             actionIcon={
               <IconButton onClick={() => onBranchClicked(branch.id)}>
-                <InfoIcon />
+                <SwapVertIcon />
               </IconButton>
             }
           />
