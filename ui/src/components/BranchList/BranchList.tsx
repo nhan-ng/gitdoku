@@ -26,13 +26,13 @@ export const BranchList = ({ onBranchClicked }: BranchListProps) => {
   const branches = data.branches;
 
   return (
-    <GridList cellHeight="auto" cols={2.5} style={{ flexWrap: "nowrap" }}>
+    <GridList cellHeight="auto" cols={3} style={{ flexWrap: "nowrap" }}>
       {branches.map((branch) => (
         <GridListTile key={branch.id}>
-          <Box>
+          <Box ml={-6}>
             <SudokuBoard
               board={branch.commit.blob.board}
-              scale={0.75}
+              scale={0.6}
               readOnly={true}
             />
           </Box>

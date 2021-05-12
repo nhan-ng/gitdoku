@@ -6,7 +6,16 @@ import {
 import styled from "styled-components";
 import React, { useState } from "react";
 import { useBranchContext } from "../../hooks";
-import { Table, TableBody, TableRow, TableCell } from "@material-ui/core";
+import {
+  Table,
+  TableBody,
+  TableRow,
+  TableCell,
+  TableContainer,
+  Paper,
+  Box,
+  TableCellProps,
+} from "@material-ui/core";
 
 // const backgroundColor = "#FFF";
 // const blue = "hsl(210, 88%, 56%)";
@@ -19,6 +28,12 @@ const orangeDark = "hsl(34, 76%, 89%)";
 type SudokuTableProps = {
   scale: number;
 };
+
+const SudokuTableContainer = styled(({ ...props }) => (
+  <TableContainer {...props} />
+))`
+  width: max-content;
+`;
 
 const SudokuTable = styled(Table)<SudokuTableProps>`
   transform: scale(${({ scale }) => scale});
@@ -33,16 +48,17 @@ const SudokuRow = styled(TableRow)`
 `;
 
 type SudokuCellProps = {
-  immutable: boolean;
-  isSelected: boolean;
-  isPeered: boolean;
+  $immutable: boolean;
+  $isSelected: boolean;
+  $isPeered: boolean;
 };
 const SudokuCell = styled(TableCell)<SudokuCellProps>`
   border: 1px solid ${greyLighter};
   cursor: pointer;
-  color: ${({ immutable }) => (immutable ? grey : greyLight)};
-  background-color: ${({ isSelected, isPeered }) =>
-    isSelected ? orangeDark : isPeered ? orange : "transparent"};
+  font-weight: bolder;
+  color: ${({ $immutable }) => ($immutable ? grey : greyLight)};
+  background-color: ${({ $isSelected, $isPeered }) =>
+    $isSelected ? orange : $isPeered ? orangeDark : "transparent"};
   &:nth-child(3n) {
     border-right: 2px solid ${grey};
   }
@@ -118,44 +134,49 @@ export function SudokuBoard({ board, scale, readOnly }: SudokuBoardProps) {
     : 0;
 
   return (
-    <SudokuTable onKeyDown={onKeyDown} tabIndex={0} scale={scale}>
-      <TableBody>
-        {board.map((row, i) => {
-          return (
-            <SudokuRow key={`${i}`}>
-              {row.map((cell, j) => {
-                const isSelected =
-                  (selectedCell &&
-                    selectedCell.row === i &&
-                    selectedCell.col === j) ||
-                  false;
-                if (isSelected) {
-                  console.log(
-                    "Selected cell",
-                    JSON.stringify(selectedCell),
-                    i,
-                    j
-                  );
-                }
+    <SudokuTableContainer component={Paper}>
+      <Box fontWeight="fontWeightBold">
+        <SudokuTable onKeyDown={onKeyDown} tabIndex={0} scale={scale}>
+          <TableBody>
+            {board.map((row, i) => {
+              return (
+                <SudokuRow key={`${i}`}>
+                  {row.map((cell, j) => {
+                    const isSelected =
+                      (selectedCell &&
+                        selectedCell.row === i &&
+                        selectedCell.col === j) ||
+                      false;
+                    if (isSelected) {
+                      console.log(
+                        "Selected cell",
+                        JSON.stringify(selectedCell),
+                        i,
+                        j
+                      );
+                    }
 
-                const isPeered = selectedVal === cell.val && selectedVal !== 0;
+                    const isPeered =
+                      selectedVal === cell.val && selectedVal !== 0;
 
-                return (
-                  <SudokuCell
-                    immutable={cell.immutable}
-                    isSelected={isSelected}
-                    isPeered={isPeered}
-                    key={`${i}${j}`}
-                    onClick={() => onCellClicked(i, j)}
-                  >
-                    {cell.val === 0 ? " " : cell.val}
-                  </SudokuCell>
-                );
-              })}
-            </SudokuRow>
-          );
-        })}
-      </TableBody>
-    </SudokuTable>
+                    return (
+                      <SudokuCell
+                        $immutable={cell.immutable}
+                        $isSelected={isSelected}
+                        $isPeered={isPeered}
+                        key={`${i}${j}`}
+                        onClick={() => onCellClicked(i, j)}
+                      >
+                        {cell.val === 0 ? " " : cell.val}
+                      </SudokuCell>
+                    );
+                  })}
+                </SudokuRow>
+              );
+            })}
+          </TableBody>
+        </SudokuTable>
+      </Box>
+    </SudokuTableContainer>
   );
 }
