@@ -3,9 +3,14 @@ package graph
 
 import (
 	"fmt"
+	"io/ioutil"
+	"path/filepath"
+
+	"go.uber.org/zap"
 
 	"github.com/google/uuid"
 
+	git "github.com/libgit2/git2go/v31"
 	"github.com/nhan-ng/sudoku/graph/generated"
 	"github.com/nhan-ng/sudoku/graph/model"
 	"github.com/nhan-ng/sudoku/internal/engine"
@@ -29,13 +34,18 @@ type Resolver struct {
 	sudoku   *model.Sudoku
 	commits  map[string]*model.Commit
 	branches map[string]*model.Branch
+
+	origin      *git.Repository
+	branchRepos map[string]*git.Repository
 }
 
-func NewResolver() (*generated.Config, error) {
+func NewResolverOld() (*generated.Config, error) {
 	sudoku, err := engine.NewSudokuFromRaw(sampleSudoku)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create a Sudoku: %w", err)
 	}
+
+	// Initialize the git
 
 	defaultBranch := "master"
 	initialCommit := &model.Commit{
@@ -64,6 +74,17 @@ func NewResolver() (*generated.Config, error) {
 	}, nil
 }
 
+func NewResolver() (*generated.Config, error) {
+	_, err := engine.ReadBoard(sampleSudoku)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create a Sudoku: %w", err)
+	}
+
+	return &generated.Config{
+		Resolvers: &Resolver{},
+	}, nil
+}
+
 func convertBoard(board [][]int) [][]model.Cell {
 	result := make([][]model.Cell, 9)
 	for i := 0; i < 9; i++ {
@@ -80,4 +101,21 @@ func convertBoard(board [][]int) [][]model.Cell {
 	}
 
 	return result
+}
+
+func gitInit() (*git.Repository, error) {
+	path, err := ioutil.TempDir("", "gitdoku")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get a temp dir: %w", err)
+	}
+
+	originPath := filepath.Join(path, "origin")
+	repo, err := git.InitRepository(originPath, true)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize the repo: %w", err)
+	}
+
+	zap.L().Info("Initialized origin repo.", zap.String("originPath", originPath))
+
+	return repo, nil
 }
