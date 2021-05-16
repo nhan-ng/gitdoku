@@ -7,15 +7,21 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
-	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/storage"
 
+	"github.com/go-git/go-billy/v5/osfs"
 	"github.com/go-git/go-git/v5/plumbing/cache"
 	"github.com/go-git/go-git/v5/storage/filesystem"
 
-	"github.com/go-git/go-billy/v5/osfs"
+	"github.com/go-git/go-billy/v5/memfs"
+	"github.com/go-git/go-git/v5/storage/memory"
+
+	"github.com/go-git/go-git/v5/plumbing"
 
 	"github.com/go-git/go-git/v5/plumbing/object"
 
@@ -46,8 +52,12 @@ const gameFile = "game.dat"
 //
 // It serves as dependency injection for your app, add any dependencies you require here.
 
+type ObserverCleanUpFunc func()
+
 type Resolver struct {
 	sudoku *model.Sudoku
+
+	branchObservers map[string]*BranchObserver
 
 	repo *git.Repository
 	fs   billy.Filesystem
@@ -55,6 +65,11 @@ type Resolver struct {
 	mu sync.RWMutex
 
 	*zap.Logger
+}
+
+type BranchObserver struct {
+	BranchID  string
+	Observers map[string]chan *model.Commit
 }
 
 func NewResolver() (*generated.Config, error) {
@@ -74,16 +89,28 @@ func newGame() (*Resolver, error) {
 		return nil, fmt.Errorf("failed to create a Sudoku: %w", err)
 	}
 
-	// Initialize repo folder
-	path, err := ioutil.TempDir("", "gitdoku")
-	if err != nil {
-		return nil, fmt.Errorf("failed to create a temp dir for repo: %w", err)
+	// Initialize the backing fs
+	var fs billy.Filesystem
+	var storer storage.Storer
+	useFS := false
+	if useFS {
+		// Initialize repo folder
+		path, err := ioutil.TempDir("", "gitdoku")
+		if err != nil {
+			return nil, fmt.Errorf("failed to create a temp dir for repo: %w", err)
+		}
+		zap.L().Info("Initialized origin repo on filesystem.", zap.String("path", path))
+
+		fs = osfs.New(path)
+		storerFS := osfs.New(filepath.Join(path, ".git"))
+		storer = filesystem.NewStorage(storerFS, cache.NewObjectLRUDefault())
+	} else { // Memory
+		zap.L().Info("Initialized origin repo in memory.")
+		fs = memfs.New()
+		storer = memory.NewStorage()
 	}
 
-	// Initialize
-	fs := osfs.New(path)
-	storerFS := osfs.New(filepath.Join(path, ".git"))
-	storer := filesystem.NewStorage(storerFS, cache.NewObjectLRUDefault())
+	// Initialize the repo
 	repo, err := git.Init(storer, fs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize the repo: %w", err)
@@ -144,7 +171,7 @@ func newGame() (*Resolver, error) {
 		return nil, fmt.Errorf("failed to create initial commit: %w", err)
 	}
 
-	zap.L().Info("Initialized origin repo.", zap.String("commitId", commitID.String()), zap.String("path", path))
+	zap.L().Info("Initialized origin repo.", zap.String("commitId", commitID.String()))
 
 	// Prepare the sudoku
 	sudoku := &model.Sudoku{
@@ -152,12 +179,65 @@ func newGame() (*Resolver, error) {
 		Board:    board.GetImmutableBoards(),
 	}
 
+	// Prepare the observers
+	branchObservers := make(map[string]*BranchObserver)
+
 	return &Resolver{
-		sudoku: sudoku,
-		repo:   repo,
-		fs:     fs,
-		Logger: zap.L(),
+		sudoku:          sudoku,
+		repo:            repo,
+		fs:              fs,
+		branchObservers: branchObservers,
+		Logger:          zap.L(),
 	}, nil
+}
+
+func (r *Resolver) AddBranchObserver(branchID, observerID string) (<-chan *model.Commit, ObserverCleanUpFunc, error) {
+	branch, ok := r.branchObservers[branchID]
+	if !ok {
+		branch = &BranchObserver{
+			BranchID:  branchID,
+			Observers: make(map[string]chan *model.Commit),
+		}
+		r.branchObservers[branchID] = branch
+	}
+
+	// Add the observer in
+	observers := branch.Observers
+	commitsChan := make(chan *model.Commit, 3)
+	observers[observerID] = commitsChan
+	cleanUp := func() {
+		delete(observers, observerID)
+	}
+
+	return commitsChan, cleanUp, nil
+}
+
+func (r *Resolver) NotifyObservers(branchID string, commit *model.Commit) {
+	branch, ok := r.branchObservers[branchID]
+	if !ok {
+		return
+	}
+
+	for _, observer := range branch.Observers {
+		observer <- commit
+	}
+}
+
+func (r *Resolver) Close() error {
+	type fsBased interface {
+		Filesystem() billy.Filesystem
+	}
+
+	fs, isFSBased := r.fs.(fsBased)
+	if !isFSBased {
+		return nil
+	}
+
+	root := fs.Filesystem().Root()
+	r.Info("Removing root folder.", zap.String("root", root))
+
+	// Clean up filesystem
+	return os.RemoveAll(root)
 }
 
 func (r *Resolver) ReadBoard() (engine.Board, error) {
@@ -181,7 +261,7 @@ func (r *Resolver) ReadBoard() (engine.Board, error) {
 	return board, nil
 }
 
-func (r *Resolver) CommitBoard(board engine.Board) (*object.Commit, error) {
+func (r *Resolver) CommitBoard(board engine.Board, message string) (*object.Commit, error) {
 	// Add board to index
 	boardContent, err := board.Marshal()
 	if err != nil {
@@ -206,7 +286,7 @@ func (r *Resolver) CommitBoard(board engine.Board) (*object.Commit, error) {
 		Email: "gm@gitdoku.io",
 		When:  time.Now(),
 	}
-	commitID, err := wt.Commit("Update", &git.CommitOptions{
+	commitID, err := wt.Commit(message, &git.CommitOptions{
 		Author:    sig,
 		Committer: sig,
 	})
@@ -305,24 +385,46 @@ func ConvertBranch(ref *plumbing.Reference) *model.Branch {
 	}
 }
 
-func ConvertCommit(commit *object.Commit) *model.Commit {
+func ConvertCommit(commit *object.Commit) (*model.Commit, error) {
 	if commit == nil {
-		return nil
+		return nil, nil
 	}
 
-	var parentID *string
-	if commit.NumParents() > 0 {
-		parentID = StringPtr(commit.ParentHashes[0].String())
+	parentIDs := make([]string, 0, len(commit.ParentHashes))
+	for _, parentID := range commit.ParentHashes {
+		parentIDs = append(parentIDs, parentID.String())
 	}
 
-	return &model.Commit{
+	result := &model.Commit{
 		ID:              commit.Hash.String(),
-		ParentID:        parentID,
+		ParentIDs:       parentIDs,
 		AuthorID:        commit.Author.String(),
 		AuthorTimestamp: commit.Author.When,
 	}
-}
 
-func StringPtr(s string) *string {
-	return &s
+	// Parse message only if it's not a merge commit, a merge commit has multiple parents
+	if len(parentIDs) == 1 {
+		parts := strings.Split(commit.Message, " ")
+		result.Type = model.CommitType(parts[0])
+
+		row, err := strconv.Atoi(parts[1])
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse row in message: %w", err)
+		}
+		result.Row = row
+
+		col, err := strconv.Atoi(parts[2])
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse col in message: %w", err)
+		}
+		result.Col = col
+
+		val, err := strconv.Atoi(parts[3])
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse value in message: %w", err)
+		}
+		result.Val = val
+	}
+
+	return result, nil
 }

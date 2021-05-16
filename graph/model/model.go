@@ -1,17 +1,14 @@
 package model
 
 import (
-	"sync"
 	"time"
-
-	"github.com/nhan-ng/sudoku/graph/gqlerrors"
 )
 
 type AddObserverCleanUpFunc func()
 
 type Commit struct {
 	ID              string     `json:"id"`
-	ParentID        *string    `json:"parentId"`
+	ParentIDs       []string   `json:"parentIds"`
 	Type            CommitType `json:"type"`
 	Row             int        `json:"row"`
 	Col             int        `json:"col"`
@@ -23,9 +20,6 @@ type Commit struct {
 type Branch struct {
 	ID       string `json:"id"`
 	CommitID string `json:"commitId"`
-
-	observers map[string]chan *Commit
-	lock      sync.Mutex
 }
 
 type Sudoku struct {
@@ -47,8 +41,6 @@ func NewBranch(id string, commit *Commit) *Branch {
 	return &Branch{
 		ID:       id,
 		CommitID: commit.ID,
-
-		observers: make(map[string]chan *Commit),
 	}
 }
 
@@ -117,26 +109,26 @@ func (s *Sudoku) HasConflictWithFixedBoard(row, col int) bool {
 //		observer <- commit
 //	}
 //}
-
-func (b *Branch) AddObserver(observerID string) (<-chan *Commit, AddObserverCleanUpFunc, error) {
-	b.lock.Lock()
-	defer b.lock.Unlock()
-
-	_, exists := b.observers[observerID]
-	if exists {
-		return nil, nil, gqlerrors.ErrBranchObserverAlreadyExists(observerID, b.ID)
-	}
-
-	// Initialize the commits channel
-	commitsChan := make(chan *Commit, 1)
-	b.observers[observerID] = commitsChan
-
-	// And its clean up func
-	cleanUpFunc := func() {
-		b.lock.Lock()
-		defer b.lock.Unlock()
-		delete(b.observers, observerID)
-	}
-
-	return commitsChan, cleanUpFunc, nil
-}
+//
+//func (b *Branch) AddObserver(observerID string) (<-chan *Commit, AddObserverCleanUpFunc, error) {
+//	b.lock.Lock()
+//	defer b.lock.Unlock()
+//
+//	_, exists := b.observers[observerID]
+//	if exists {
+//		return nil, nil, gqlerrors.ErrBranchObserverAlreadyExists(observerID, b.ID)
+//	}
+//
+//	// Initialize the commits channel
+//	commitsChan := make(chan *Commit, 1)
+//	b.observers[observerID] = commitsChan
+//
+//	// And its clean up func
+//	cleanUpFunc := func() {
+//		b.lock.Lock()
+//		defer b.lock.Unlock()
+//		delete(b.observers, observerID)
+//	}
+//
+//	return commitsChan, cleanUpFunc, nil
+//}

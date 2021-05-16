@@ -7,12 +7,15 @@ import {
   LinearProgress,
 } from "@material-ui/core";
 import React from "react";
-import { Branch, useGetBranchesQuery } from "../../__generated__/types";
+import {
+  LiteBranchFragment,
+  useGetBranchesQuery,
+} from "../../__generated__/types";
 import { SudokuBoard } from "../Sudoku";
 import SwapVertIcon from "@material-ui/icons/SwapVert";
 
 export type BranchListProps = {
-  branches: Pick<Branch, "id" | "commit">[];
+  branches: Pick<LiteBranchFragment, "id" | "commit">[];
   onBranchClicked: (branchId: string) => void;
 };
 

@@ -72,8 +72,8 @@ type ComplexityRoot struct {
 		Blob            func(childComplexity int) int
 		Col             func(childComplexity int) int
 		ID              func(childComplexity int) int
-		Parent          func(childComplexity int) int
-		ParentID        func(childComplexity int) int
+		ParentIDs       func(childComplexity int) int
+		Parents         func(childComplexity int) int
 		Row             func(childComplexity int) int
 		Type            func(childComplexity int) int
 		Val             func(childComplexity int) int
@@ -107,7 +107,7 @@ type BranchResolver interface {
 	Commits(ctx context.Context, obj *model.Branch) ([]*model.Commit, error)
 }
 type CommitResolver interface {
-	Parent(ctx context.Context, obj *model.Commit) (*model.Commit, error)
+	Parents(ctx context.Context, obj *model.Commit) ([]*model.Commit, error)
 	Blob(ctx context.Context, obj *model.Commit) (*model.Blob, error)
 }
 type MutationResolver interface {
@@ -233,19 +233,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Commit.ID(childComplexity), true
 
-	case "Commit.parent":
-		if e.complexity.Commit.Parent == nil {
+	case "Commit.parentIds":
+		if e.complexity.Commit.ParentIDs == nil {
 			break
 		}
 
-		return e.complexity.Commit.Parent(childComplexity), true
+		return e.complexity.Commit.ParentIDs(childComplexity), true
 
-	case "Commit.parentId":
-		if e.complexity.Commit.ParentID == nil {
+	case "Commit.parents":
+		if e.complexity.Commit.Parents == nil {
 			break
 		}
 
-		return e.complexity.Commit.ParentID(childComplexity), true
+		return e.complexity.Commit.Parents(childComplexity), true
 
 	case "Commit.row":
 		if e.complexity.Commit.Row == nil {
@@ -483,12 +483,10 @@ type Commit {
   id: ID!
   authorId: ID!
   authorTimestamp: Time!
-#  authorId: ID!
-#  authorTimestamp: Time!
 #  committerId: ID!
 #  committerTimestamp: Time!
-  parentId: ID
-  parent: Commit
+  parentIds: [ID!]!
+  parents: [Commit!]!
 
   blob: Blob!
 
@@ -1061,7 +1059,7 @@ func (ec *executionContext) _Commit_authorTimestamp(ctx context.Context, field g
 	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Commit_parentId(ctx context.Context, field graphql.CollectedField, obj *model.Commit) (ret graphql.Marshaler) {
+func (ec *executionContext) _Commit_parentIds(ctx context.Context, field graphql.CollectedField, obj *model.Commit) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1079,21 +1077,24 @@ func (ec *executionContext) _Commit_parentId(ctx context.Context, field graphql.
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.ParentID, nil
+		return obj.ParentIDs, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.([]string)
 	fc.Result = res
-	return ec.marshalOID2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalNID2ᚕstringᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Commit_parent(ctx context.Context, field graphql.CollectedField, obj *model.Commit) (ret graphql.Marshaler) {
+func (ec *executionContext) _Commit_parents(ctx context.Context, field graphql.CollectedField, obj *model.Commit) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1111,18 +1112,21 @@ func (ec *executionContext) _Commit_parent(ctx context.Context, field graphql.Co
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Commit().Parent(rctx, obj)
+		return ec.resolvers.Commit().Parents(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.Commit)
+	res := resTmp.([]*model.Commit)
 	fc.Result = res
-	return ec.marshalOCommit2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCommit(ctx, field.Selections, res)
+	return ec.marshalNCommit2ᚕᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCommitᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Commit_blob(ctx context.Context, field graphql.CollectedField, obj *model.Commit) (ret graphql.Marshaler) {
@@ -3099,9 +3103,12 @@ func (ec *executionContext) _Commit(ctx context.Context, sel ast.SelectionSet, o
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
-		case "parentId":
-			out.Values[i] = ec._Commit_parentId(ctx, field, obj)
-		case "parent":
+		case "parentIds":
+			out.Values[i] = ec._Commit_parentIds(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "parents":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
 				defer func() {
@@ -3109,7 +3116,10 @@ func (ec *executionContext) _Commit(ctx context.Context, sel ast.SelectionSet, o
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Commit_parent(ctx, field, obj)
+				res = ec._Commit_parents(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			})
 		case "blob":
@@ -3834,6 +3844,36 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 	return res
 }
 
+func (ec *executionContext) unmarshalNID2ᚕstringᚄ(ctx context.Context, v interface{}) ([]string, error) {
+	var vSlice []interface{}
+	if v != nil {
+		if tmp1, ok := v.([]interface{}); ok {
+			vSlice = tmp1
+		} else {
+			vSlice = []interface{}{v}
+		}
+	}
+	var err error
+	res := make([]string, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNID2string(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalNID2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNID2string(ctx, sel, v[i])
+	}
+
+	return ret
+}
+
 func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v interface{}) (int, error) {
 	res, err := graphql.UnmarshalInt(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -4219,13 +4259,6 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 		return graphql.Null
 	}
 	return graphql.MarshalBoolean(*v)
-}
-
-func (ec *executionContext) marshalOCommit2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCommit(ctx context.Context, sel ast.SelectionSet, v *model.Commit) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._Commit(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOID2ᚖstring(ctx context.Context, v interface{}) (*string, error) {

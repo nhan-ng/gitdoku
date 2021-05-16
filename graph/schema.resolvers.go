@@ -7,11 +7,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-git/go-git/v5/plumbing/object"
-
-	"github.com/go-git/go-git/v5"
-
+	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/google/uuid"
 	"github.com/nhan-ng/sudoku/graph/generated"
 	"github.com/nhan-ng/sudoku/graph/gqlerrors"
 	"github.com/nhan-ng/sudoku/graph/model"
@@ -27,22 +26,32 @@ func (r *branchResolver) Commit(ctx context.Context, obj *model.Branch) (*model.
 		return nil, gqlerrors.ErrCommitNotFound(obj.CommitID)
 	}
 
-	return ConvertCommit(commit), nil
+	result, err := ConvertCommit(commit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert result: %w", err)
+	}
+
+	return result, nil
 }
 
 func (r *branchResolver) Commits(ctx context.Context, obj *model.Branch) ([]*model.Commit, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	commit, err := r.repo.CommitObject(plumbing.NewHash(obj.CommitID))
+	commits, err := r.repo.Log(&git.LogOptions{
+		From: plumbing.NewHash(obj.CommitID),
+	})
 	if err != nil {
-		return nil, gqlerrors.ErrCommitNotFound(obj.CommitID)
+		return nil, fmt.Errorf("failed to get all commits: %w", err)
 	}
 
-	result := make([]*model.Commit, 0, len(commit.ParentHashes)+1)
-	result = append(result, ConvertCommit(commit))
-	err = commit.Parents().ForEach(func(c *object.Commit) error {
-		result = append(result, ConvertCommit(c))
+	result := make([]*model.Commit, 0)
+	err = commits.ForEach(func(c *object.Commit) error {
+		commit, err := ConvertCommit(c)
+		if err != nil {
+			return fmt.Errorf("failed to convert commit: %w", err)
+		}
+		result = append(result, commit)
 		return nil
 	})
 	if err != nil {
@@ -52,20 +61,24 @@ func (r *branchResolver) Commits(ctx context.Context, obj *model.Branch) ([]*mod
 	return result, nil
 }
 
-func (r *commitResolver) Parent(ctx context.Context, obj *model.Commit) (*model.Commit, error) {
+func (r *commitResolver) Parents(ctx context.Context, obj *model.Commit) ([]*model.Commit, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	if obj.ParentID == nil {
-		return nil, nil
+	result := make([]*model.Commit, 0, len(obj.ParentIDs))
+	for _, parentID := range obj.ParentIDs {
+		parentCommit, err := r.repo.CommitObject(plumbing.NewHash(parentID))
+		if err != nil {
+			return nil, gqlerrors.ErrCommitNotFound(parentID)
+		}
+		c, err := ConvertCommit(parentCommit)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert parent commit: %w", err)
+		}
+		result = append(result, c)
 	}
 
-	parentCommit, err := r.repo.CommitObject(plumbing.NewHash(*obj.ParentID))
-	if err != nil {
-		return nil, gqlerrors.ErrCommitNotFound(*obj.ParentID)
-	}
-
-	return ConvertCommit(parentCommit), nil
+	return result, nil
 }
 
 func (r *commitResolver) Blob(ctx context.Context, obj *model.Commit) (*model.Blob, error) {
@@ -143,13 +156,22 @@ func (r *mutationResolver) AddCommit(ctx context.Context, input model.AddCommitI
 		cell.Notes[input.Val-1] = false
 	}
 
+	commitMessage := fmt.Sprintf("%s %d %d %d", input.Type, input.Row, input.Col, input.Val)
+
 	// Commit the change
-	commit, err := r.CommitBoard(board)
+	c, err := r.CommitBoard(board, commitMessage)
 	if err != nil {
 		return nil, fmt.Errorf("failed to commit the board change: %w", err)
 	}
+	commit, err := ConvertCommit(c)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert commit: %w", err)
+	}
 
-	return ConvertCommit(commit), nil
+	// Broadcast the change
+	r.NotifyObservers(input.BranchID, commit)
+
+	return commit, nil
 }
 
 func (r *mutationResolver) AddBranch(ctx context.Context, input model.AddBranchInput) (*model.Branch, error) {
@@ -241,11 +263,32 @@ func (r *queryResolver) Commit(ctx context.Context, id string) (*model.Commit, e
 		return nil, gqlerrors.ErrCommitNotFound(id)
 	}
 
-	return ConvertCommit(commit), nil
+	result, err := ConvertCommit(commit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert commit: %w", err)
+	}
+
+	return result, nil
 }
 
 func (r *subscriptionResolver) CommitAdded(ctx context.Context, branchID string) (<-chan *model.Commit, error) {
-	panic("not implemented")
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	commitsChan, cleanUp, err := r.AddBranchObserver(branchID, uuid.NewString())
+	if err != nil {
+		return nil, fmt.Errorf("failed to add observer: %w", err)
+	}
+
+	// Add a defered clean up
+	go func() {
+		<-ctx.Done()
+		r.mu.Lock()
+		defer r.mu.Unlock()
+		cleanUp()
+	}()
+
+	return commitsChan, nil
 }
 
 func (r *sudokuResolver) Branch(ctx context.Context, obj *model.Sudoku) (*model.Branch, error) {

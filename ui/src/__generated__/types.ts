@@ -59,6 +59,8 @@ export type Cell = {
 export type Commit = {
   __typename: 'Commit';
   id: Scalars['ID'];
+  authorId: Scalars['ID'];
+  authorTimestamp: Scalars['Time'];
   parentId?: Maybe<Scalars['ID']>;
   parent?: Maybe<Commit>;
   blob: Blob;

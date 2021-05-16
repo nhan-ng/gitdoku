@@ -39,8 +39,8 @@ type Commit {
   authorTimestamp: Time!
 #  committerId: ID!
 #  committerTimestamp: Time!
-  parentId: ID
-  parent: Commit
+  parentIds: [ID!]!
+  parents: [Commit!]!
 
   blob: Blob!
 

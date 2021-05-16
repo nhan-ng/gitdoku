@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -27,9 +28,13 @@ var (
 func Serve() error {
 	// Schema
 	resolver, err := graph.NewResolver()
+	if closer, ok := resolver.Resolvers.(io.Closer); ok {
+		defer closer.Close()
+	}
 	if err != nil {
 		return fmt.Errorf("failed to create a GraphQL resolver: %w", err)
 	}
+
 	h := handler.New(generated.NewExecutableSchema(*resolver))
 	h.SetRecoverFunc(func(ctx context.Context, err interface{}) (userMessage error) {
 		zap.L().Error("Panic error when processing GraphQL.", zap.Any("error", err))
