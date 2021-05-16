@@ -176,3 +176,17 @@ func (n Notes) AsNumbers() []int {
 
 	return result
 }
+
+func (b Board) GetImmutableBoards() [][]int {
+	result := make([][]int, 9)
+	for i, row := range b {
+		result[i] = make([]int, 9)
+		for j, cell := range row {
+			if cell.Immutable {
+				result[i][j] = cell.Value
+			}
+		}
+	}
+
+	return result
+}

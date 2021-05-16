@@ -7,8 +7,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/go-git/go-git/v5/plumbing/object"
+
+	"github.com/go-git/go-git/v5"
+
 	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/google/uuid"
 	"github.com/nhan-ng/sudoku/graph/generated"
 	"github.com/nhan-ng/sudoku/graph/gqlerrors"
 	"github.com/nhan-ng/sudoku/graph/model"
@@ -16,19 +19,70 @@ import (
 )
 
 func (r *branchResolver) Commit(ctx context.Context, obj *model.Branch) (*model.Commit, error) {
-	panic(fmt.Errorf("not implemented"))
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	commit, err := r.repo.CommitObject(plumbing.NewHash(obj.CommitID))
+	if err != nil {
+		return nil, gqlerrors.ErrCommitNotFound(obj.CommitID)
+	}
+
+	return ConvertCommit(commit), nil
 }
 
 func (r *branchResolver) Commits(ctx context.Context, obj *model.Branch) ([]*model.Commit, error) {
-	panic(fmt.Errorf("not implemented"))
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	commit, err := r.repo.CommitObject(plumbing.NewHash(obj.CommitID))
+	if err != nil {
+		return nil, gqlerrors.ErrCommitNotFound(obj.CommitID)
+	}
+
+	result := make([]*model.Commit, 0, len(commit.ParentHashes)+1)
+	result = append(result, ConvertCommit(commit))
+	err = commit.Parents().ForEach(func(c *object.Commit) error {
+		result = append(result, ConvertCommit(c))
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to load parent commits: %w", err)
+	}
+
+	return result, nil
 }
 
 func (r *commitResolver) Parent(ctx context.Context, obj *model.Commit) (*model.Commit, error) {
-	panic(fmt.Errorf("not implemented"))
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	if obj.ParentID == nil {
+		return nil, nil
+	}
+
+	parentCommit, err := r.repo.CommitObject(plumbing.NewHash(*obj.ParentID))
+	if err != nil {
+		return nil, gqlerrors.ErrCommitNotFound(*obj.ParentID)
+	}
+
+	return ConvertCommit(parentCommit), nil
 }
 
 func (r *commitResolver) Blob(ctx context.Context, obj *model.Commit) (*model.Blob, error) {
-	panic(fmt.Errorf("not implemented"))
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	commit, err := r.repo.CommitObject(plumbing.NewHash(obj.ID))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read commit: %w", err)
+	}
+
+	board, err := ReadBoard(commit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read board: %w", err)
+	}
+
+	return ConvertBlob(board), nil
 }
 
 func (r *mutationResolver) AddCommit(ctx context.Context, input model.AddCommitInput) (*model.Commit, error) {
@@ -43,7 +97,59 @@ func (r *mutationResolver) AddCommit(ctx context.Context, input model.AddCommitI
 		return nil, gqlerrors.ErrInvalidInputCoordinate()
 	}
 
-	panic(fmt.Errorf("not implemented"))
+	// Create a commit
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	// Verify the branch
+	ref, err := r.repo.Reference(plumbing.NewBranchReferenceName(input.BranchID), false)
+	if err != nil {
+		return nil, gqlerrors.ErrBranchNotFound(input.BranchID)
+	}
+
+	// Create a commit
+	wt, err := r.repo.Worktree()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get worktree: %w", err)
+	}
+
+	// Checkout
+	err = wt.Checkout(&git.CheckoutOptions{
+		Branch: ref.Name(),
+		Force:  true,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get worktree: %w", err)
+	}
+
+	// Make the change
+	board, err := r.ReadBoard()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read board from current worktree: %w", err)
+	}
+
+	cell := &board[input.Row][input.Col]
+	switch input.Type {
+	case model.CommitTypeAddFill:
+		cell.Value = input.Val
+
+	case model.CommitTypeRemoveFill:
+		cell.Value = 0
+
+	case model.CommitTypeAddNote:
+		cell.Notes[input.Val-1] = true
+
+	case model.CommitTypeRemoveNote:
+		cell.Notes[input.Val-1] = false
+	}
+
+	// Commit the change
+	commit, err := r.CommitBoard(board)
+	if err != nil {
+		return nil, fmt.Errorf("failed to commit the board change: %w", err)
+	}
+
+	return ConvertCommit(commit), nil
 }
 
 func (r *mutationResolver) AddBranch(ctx context.Context, input model.AddBranchInput) (*model.Branch, error) {
@@ -55,11 +161,12 @@ func (r *mutationResolver) AddBranch(ctx context.Context, input model.AddBranchI
 		return nil, gqlerrors.ErrBranchAlreadyExists(input.ID)
 	}
 
-	// Validate
+	// Validate that both arguments can't be specified
 	if input.CommitID == nil && input.BranchID == nil {
 		return nil, gqlerrors.ErrInvalidInputCoordinate()
 	}
 
+	// Determine which argument to use
 	var commitID plumbing.Hash
 	if input.CommitID != nil {
 		commitID = plumbing.NewHash(*input.CommitID)
@@ -71,6 +178,7 @@ func (r *mutationResolver) AddBranch(ctx context.Context, input model.AddBranchI
 		commitID = ref.Hash()
 	}
 
+	// Check if the commit exists
 	_, err = r.repo.CommitObject(commitID)
 	if err != nil {
 		return nil, gqlerrors.ErrCommitNotFound(commitID.String())
@@ -106,18 +214,13 @@ func (r *queryResolver) Branches(ctx context.Context) ([]*model.Branch, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	refs, err := r.repo.References()
+	refs, err := r.repo.Branches()
 	if err != nil {
 		return nil, fmt.Errorf("failed to read branches: %w", err)
 	}
 
-	branches := make([]*model.Branch, 0, len(r.branches))
+	branches := make([]*model.Branch, 0)
 	err = refs.ForEach(func(ref *plumbing.Reference) error {
-		// Skip
-		if !ref.Name().IsBranch() {
-			return nil
-		}
-
 		branches = append(branches, ConvertBranch(ref))
 		return nil
 	})
@@ -132,46 +235,17 @@ func (r *queryResolver) Commit(ctx context.Context, id string) (*model.Commit, e
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	ref, err := r.repo.CommitObject(plumbing.NewHash(id))
+	commit, err := r.repo.CommitObject(plumbing.NewHash(id))
 	if err != nil {
 		r.Error("Failed to get commit.", zap.Error(err))
 		return nil, gqlerrors.ErrCommitNotFound(id)
 	}
 
-	var parentID *string
-	if ref.NumParents() > 0 {
-		*parentID = ref.ParentHashes[0].String()
-	}
-
-	return &model.Commit{
-		ID:              ref.Hash.String(),
-		ParentID:        parentID,
-		Type:            model.CommitTypeAddFill,
-		AuthorID:        ref.Author.String(),
-		AuthorTimestamp: ref.Author.When,
-	}, nil
+	return ConvertCommit(commit), nil
 }
 
 func (r *subscriptionResolver) CommitAdded(ctx context.Context, branchID string) (<-chan *model.Commit, error) {
-	branch, ok := r.branches[branchID]
-	if !ok {
-		return nil, gqlerrors.ErrBranchNotFound(branchID)
-	}
-
-	// Add a new observer
-	observerID := uuid.NewString()
-	commits, cleanUp, err := branch.AddObserver(observerID)
-	if err != nil {
-		return nil, err
-	}
-
-	// Start a watcher to clean up the observer once the connection is disconnected
-	go func() {
-		<-ctx.Done()
-		cleanUp()
-	}()
-
-	return commits, nil
+	panic("not implemented")
 }
 
 func (r *sudokuResolver) Branch(ctx context.Context, obj *model.Sudoku) (*model.Branch, error) {
