@@ -1,11 +1,9 @@
 package model
 
 import (
-	"sort"
 	"sync"
 	"time"
 
-	"github.com/jinzhu/copier"
 	"github.com/nhan-ng/sudoku/graph/gqlerrors"
 )
 
@@ -14,20 +12,17 @@ type AddObserverCleanUpFunc func()
 type Commit struct {
 	ID              string     `json:"id"`
 	ParentID        *string    `json:"parentId"`
-	BlobID          string     `json:"blobId"`
 	Type            CommitType `json:"type"`
 	Row             int        `json:"row"`
 	Col             int        `json:"col"`
 	Val             int        `json:"val"`
-	Blob            Blob       `json:"blob"`
 	AuthorID        string     `json:"authorId"`
 	AuthorTimestamp time.Time  `json:"authorTimestamp"`
 }
 
 type Branch struct {
-	ID       string  `json:"id"`
-	CommitID string  `json:"commitId"`
-	Commit   *Commit `json:"commit"`
+	ID       string `json:"id"`
+	CommitID string `json:"commitId"`
 
 	observers map[string]chan *Commit
 	lock      sync.Mutex
@@ -52,7 +47,6 @@ func NewBranch(id string, commit *Commit) *Branch {
 	return &Branch{
 		ID:       id,
 		CommitID: commit.ID,
-		Commit:   commit,
 
 		observers: make(map[string]chan *Commit),
 	}
@@ -62,66 +56,67 @@ func (s *Sudoku) HasConflictWithFixedBoard(row, col int) bool {
 	return s.Board[row][col] != 0
 }
 
-func (b *Branch) AddCommit(commit *Commit) {
-	b.lock.Lock()
-	defer b.lock.Unlock()
-
-	// TODO: Make it better without a lot of allocations
-	// Handle commit
-	var blob Blob
-	copier.CopyWithOption(&blob, &b.Commit.Blob, copier.Option{DeepCopy: true})
-	switch commit.Type {
-	case CommitTypeAddFill:
-		cell := blob.Board[commit.Row][commit.Col]
-		cell.Val = commit.Val
-		blob.Board[commit.Row][commit.Col] = cell
-
-	case CommitTypeRemoveFill:
-		cell := blob.Board[commit.Row][commit.Col]
-		cell.Val = 0
-		blob.Board[commit.Row][commit.Col] = cell
-
-	case CommitTypeAddNote:
-		cell := blob.Board[commit.Row][commit.Col]
-		notes := make([]int, 0, len(cell.Notes))
-		for _, note := range cell.Notes {
-			if note == commit.Val {
-				notes = cell.Notes
-				break
-			}
-
-			notes = append(notes, note)
-		}
-		sort.Ints(notes)
-		cell.Notes = notes
-		blob.Board[commit.Row][commit.Col] = cell
-
-	case CommitTypeRemoveNote:
-		cell := blob.Board[commit.Row][commit.Col]
-		notes := cell.Notes
-		for i, note := range cell.Notes {
-			if note == commit.Val {
-				notes = append(cell.Notes[:i], cell.Notes[i+1:]...)
-			}
-		}
-		sort.Ints(notes)
-		cell.Notes = notes
-		blob.Board[commit.Row][commit.Col] = cell
-	}
-
-	// Add the commit
-	parentID := b.CommitID
-	commit.ParentID = &parentID
-	commit.Blob = blob
-	commit.AuthorTimestamp = time.Now()
-	b.CommitID = commit.ID
-	b.Commit = commit
-
-	// Notify observers
-	for _, observer := range b.observers {
-		observer <- commit
-	}
-}
+//
+//func (b *Branch) AddCommit(commit *Commit) {
+//	b.lock.Lock()
+//	defer b.lock.Unlock()
+//
+//	// TODO: Make it better without a lot of allocations
+//	// Handle commit
+//	var blob Blob
+//	copier.CopyWithOption(&blob, &b.Commit.Blob, copier.Option{DeepCopy: true})
+//	switch commit.Type {
+//	case CommitTypeAddFill:
+//		cell := blob.Board[commit.Row][commit.Col]
+//		cell.Val = commit.Val
+//		blob.Board[commit.Row][commit.Col] = cell
+//
+//	case CommitTypeRemoveFill:
+//		cell := blob.Board[commit.Row][commit.Col]
+//		cell.Val = 0
+//		blob.Board[commit.Row][commit.Col] = cell
+//
+//	case CommitTypeAddNote:
+//		cell := blob.Board[commit.Row][commit.Col]
+//		notes := make([]int, 0, len(cell.Notes))
+//		for _, note := range cell.Notes {
+//			if note == commit.Val {
+//				notes = cell.Notes
+//				break
+//			}
+//
+//			notes = append(notes, note)
+//		}
+//		sort.Ints(notes)
+//		cell.Notes = notes
+//		blob.Board[commit.Row][commit.Col] = cell
+//
+//	case CommitTypeRemoveNote:
+//		cell := blob.Board[commit.Row][commit.Col]
+//		notes := cell.Notes
+//		for i, note := range cell.Notes {
+//			if note == commit.Val {
+//				notes = append(cell.Notes[:i], cell.Notes[i+1:]...)
+//			}
+//		}
+//		sort.Ints(notes)
+//		cell.Notes = notes
+//		blob.Board[commit.Row][commit.Col] = cell
+//	}
+//
+//	// Add the commit
+//	parentID := b.CommitID
+//	commit.ParentID = &parentID
+//	commit.Blob = blob
+//	commit.AuthorTimestamp = time.Now()
+//	b.CommitID = commit.ID
+//	b.Commit = commit
+//
+//	// Notify observers
+//	for _, observer := range b.observers {
+//		observer <- commit
+//	}
+//}
 
 func (b *Branch) AddObserver(observerID string) (<-chan *Commit, AddObserverCleanUpFunc, error) {
 	b.lock.Lock()

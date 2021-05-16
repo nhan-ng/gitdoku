@@ -37,8 +37,6 @@ type Commit {
   id: ID!
   authorId: ID!
   authorTimestamp: Time!
-#  authorId: ID!
-#  authorTimestamp: Time!
 #  committerId: ID!
 #  committerTimestamp: Time!
   parentId: ID

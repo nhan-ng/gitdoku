@@ -50,9 +50,9 @@ func TestBoardMarshal_ValidData_ReturnExpected(t *testing.T) {
 		input[i] = make([]Cell, 9)
 		for j := 0; j < 9; j++ {
 			input[i][j] = Cell{
-				immutable: j%2 == 0,
-				value:     j + 1,
-				notes:     make([]bool, 9),
+				Immutable: j%2 == 0,
+				Value:     j + 1,
+				Notes:     make([]bool, 9),
 			}
 		}
 	}
@@ -87,18 +87,18 @@ func TestCellMarshal_ValidData_ReturnExpected(t *testing.T) {
 		{
 			name: "Immutable",
 			input: Cell{
-				immutable: true,
-				value:     3,
-				notes:     make([]bool, 9),
+				Immutable: true,
+				Value:     3,
+				Notes:     make([]bool, 9),
 			},
 			want: []byte("13000000000"),
 		},
 		{
 			name: "Mutable",
 			input: Cell{
-				immutable: false,
-				value:     3,
-				notes:     []bool{true, false, false, true, true, false, false, true, true},
+				Immutable: false,
+				Value:     3,
+				Notes:     []bool{true, false, false, true, true, false, false, true, true},
 			},
 			want: []byte("03100110011"),
 		},
@@ -127,18 +127,18 @@ func TestCellUnmarshal_ValidData_ReturnExpected(t *testing.T) {
 			name:  "Immutable",
 			input: []byte("13000000000"),
 			want: Cell{
-				immutable: true,
-				value:     3,
-				notes:     make([]bool, 9),
+				Immutable: true,
+				Value:     3,
+				Notes:     make([]bool, 9),
 			},
 		},
 		{
 			name:  "Mutable",
 			input: []byte("03100110011"),
 			want: Cell{
-				immutable: false,
-				value:     3,
-				notes:     []bool{true, false, false, true, true, false, false, true, true},
+				Immutable: false,
+				Value:     3,
+				Notes:     []bool{true, false, false, true, true, false, false, true, true},
 			},
 		},
 	}

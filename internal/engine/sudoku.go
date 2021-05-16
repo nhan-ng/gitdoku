@@ -10,7 +10,7 @@ import (
 
 var (
 	ErrInvalidCoordinate          = errors.New("sudoku: invalid coordinate")
-	ErrInvalidValue               = errors.New("sudoku: invalid value")
+	ErrInvalidValue               = errors.New("sudoku: invalid Value")
 	ErrCannotChangeFixedPosition  = errors.New("sudoku: attempt to update a fixed slot")
 	ErrCannotUndoEmptyHistory     = errors.New("sudoku: unable to undo empty history")
 	ErrCannotRedoEmptyRedoHistory = errors.New("sudoku: unable to redo without any undo")
@@ -77,10 +77,10 @@ func (s *Sudoku) Change(row, col, val int) error {
 		return ErrInvalidValue
 	}
 
-	// Get the existing value
+	// Get the existing Value
 	prevVal := s.Board[row-1][col-1]
 
-	// Do nothing if the value is the same so we don't mess up the history
+	// Do nothing if the Value is the same so we don't mess up the history
 	if prevVal == val {
 		return nil
 	}
@@ -150,7 +150,7 @@ func (s *Sudoku) Hint() error {
 				val := s.solvedBoard[row][col]
 				err := s.Change(row+1, col+1, val)
 				if err != nil {
-					return fmt.Errorf("failed to apply hint at [%d][%d] with value (%d): %w", row+1, col+1, val, err)
+					return fmt.Errorf("failed to apply hint at [%d][%d] with Value (%d): %w", row+1, col+1, val, err)
 				}
 
 				fmt.Printf("Hint was given at [%d][%d]: %d\n", row+1, col+1, val)
@@ -247,7 +247,7 @@ func (s *Sudoku) solve(board [][]int, startRow, startCol int) bool {
 				continue
 			}
 
-			// Try out each value 1-9
+			// Try out each Value 1-9
 			for k := 1; k <= 9; k++ {
 				board[i][j] = k
 				if s.validate(board) {

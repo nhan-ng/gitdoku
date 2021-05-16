@@ -103,10 +103,12 @@ type ComplexityRoot struct {
 }
 
 type BranchResolver interface {
+	Commit(ctx context.Context, obj *model.Branch) (*model.Commit, error)
 	Commits(ctx context.Context, obj *model.Branch) ([]*model.Commit, error)
 }
 type CommitResolver interface {
 	Parent(ctx context.Context, obj *model.Commit) (*model.Commit, error)
+	Blob(ctx context.Context, obj *model.Commit) (*model.Blob, error)
 }
 type MutationResolver interface {
 	AddCommit(ctx context.Context, input model.AddCommitInput) (*model.Commit, error)
@@ -790,14 +792,14 @@ func (ec *executionContext) _Branch_commit(ctx context.Context, field graphql.Co
 		Object:     "Branch",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Commit, nil
+		return ec.resolvers.Branch().Commit(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1134,14 +1136,14 @@ func (ec *executionContext) _Commit_blob(ctx context.Context, field graphql.Coll
 		Object:     "Commit",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Blob, nil
+		return ec.resolvers.Commit().Blob(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1153,9 +1155,9 @@ func (ec *executionContext) _Commit_blob(ctx context.Context, field graphql.Coll
 		}
 		return graphql.Null
 	}
-	res := resTmp.(model.Blob)
+	res := resTmp.(*model.Blob)
 	fc.Result = res
-	return ec.marshalNBlob2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐBlob(ctx, field.Selections, res)
+	return ec.marshalNBlob2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐBlob(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Commit_type(ctx context.Context, field graphql.CollectedField, obj *model.Commit) (ret graphql.Marshaler) {
@@ -2996,10 +2998,19 @@ func (ec *executionContext) _Branch(ctx context.Context, sel ast.SelectionSet, o
 				atomic.AddUint32(&invalids, 1)
 			}
 		case "commit":
-			out.Values[i] = ec._Branch_commit(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Branch_commit(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "commits":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -3102,10 +3113,19 @@ func (ec *executionContext) _Commit(ctx context.Context, sel ast.SelectionSet, o
 				return res
 			})
 		case "blob":
-			out.Values[i] = ec._Commit_blob(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Commit_blob(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "type":
 			out.Values[i] = ec._Commit_type(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -3582,6 +3602,16 @@ func (ec *executionContext) unmarshalNAddCommitInput2githubᚗcomᚋnhanᚑngᚋ
 
 func (ec *executionContext) marshalNBlob2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐBlob(ctx context.Context, sel ast.SelectionSet, v model.Blob) graphql.Marshaler {
 	return ec._Blob(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNBlob2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐBlob(ctx context.Context, sel ast.SelectionSet, v *model.Blob) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Blob(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v interface{}) (bool, error) {

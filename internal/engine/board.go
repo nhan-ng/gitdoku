@@ -12,9 +12,9 @@ type Board [][]Cell
 type Notes []bool
 
 type Cell struct {
-	immutable bool
-	value     int
-	notes     Notes
+	Immutable bool
+	Value     int
+	Notes     Notes
 }
 
 var (
@@ -36,9 +36,9 @@ func ReadBoard(input string) (Board, error) {
 		row := make([]Cell, 0, 9)
 		for _, num := range line {
 			cell := Cell{
-				immutable: num != '0',
-				value:     int(num - '0'),
-				notes:     make([]bool, 9),
+				Immutable: num != '0',
+				Value:     int(num - '0'),
+				Notes:     make([]bool, 9),
 			}
 			row = append(row, cell)
 		}
@@ -99,21 +99,21 @@ func (b *Board) Unmarshal(data []byte) error {
 }
 
 func (c Cell) Marshal() ([]byte, error) {
-	// 1 immutable byte, 1 value byte, 9 Notes bytes
+	// 1 Immutable byte, 1 Value byte, 9 Notes bytes
 	result := make([]byte, 11)
 
 	// Immutable
-	if c.immutable {
+	if c.Immutable {
 		result[0] = '1'
 	} else {
 		result[0] = '0'
 	}
 
 	// Value
-	result[1] = byte(c.value) + '0'
+	result[1] = byte(c.Value) + '0'
 
 	// Notes
-	notesBytes, err := c.notes.Marshal()
+	notesBytes, err := c.Notes.Marshal()
 	if err != nil {
 		return nil, fmt.Errorf("unable to marshal Notes: %w", err)
 	}
@@ -127,9 +127,9 @@ func (c *Cell) Unmarshal(data []byte) error {
 		return fmt.Errorf("invalid data length for unmarshalling Cell")
 	}
 
-	c.immutable = data[0] == '1'
-	c.value = int(data[1] - '0')
-	err := c.notes.Unmarshal(data[2:])
+	c.Immutable = data[0] == '1'
+	c.Value = int(data[1] - '0')
+	err := c.Notes.Unmarshal(data[2:])
 	if err != nil {
 		return fmt.Errorf("unable to unmarshal Cell: %w", err)
 	}
@@ -164,4 +164,15 @@ func (n *Notes) Unmarshal(data []byte) error {
 
 	*n = result
 	return nil
+}
+
+func (n Notes) AsNumbers() []int {
+	result := make([]int, 0)
+	for i, hasNote := range n {
+		if hasNote {
+			result = append(result, i+1)
+		}
+	}
+
+	return result
 }

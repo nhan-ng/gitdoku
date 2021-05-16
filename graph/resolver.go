@@ -4,20 +4,26 @@ package graph
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
+	"path/filepath"
+	"sync"
 	"time"
+
+	"github.com/go-git/go-git/v5/plumbing"
+
+	"github.com/go-git/go-git/v5/plumbing/cache"
+	"github.com/go-git/go-git/v5/storage/filesystem"
+
+	"github.com/go-git/go-billy/v5/osfs"
 
 	"github.com/go-git/go-git/v5/plumbing/object"
 
 	"github.com/go-git/go-billy/v5"
 
-	"github.com/go-git/go-billy/v5/memfs"
-	"github.com/go-git/go-git/v5/storage/memory"
-
 	"go.uber.org/zap"
 
 	git "github.com/go-git/go-git/v5"
-	"github.com/google/uuid"
 
 	"github.com/nhan-ng/sudoku/graph/generated"
 	"github.com/nhan-ng/sudoku/graph/model"
@@ -46,41 +52,10 @@ type Resolver struct {
 	branches map[string]*model.Branch
 
 	repo *git.Repository
-}
 
-func NewResolverOld() (*generated.Config, error) {
-	sudoku, err := engine.NewSudokuFromRaw(sampleSudoku)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create a Sudoku: %w", err)
-	}
+	mu sync.RWMutex
 
-	// Initialize the git
-
-	defaultBranch := "master"
-	initialCommit := &model.Commit{
-		ID:   uuid.NewString(),
-		Type: model.CommitTypeInitial,
-		Blob: model.Blob{
-			Board: convertBoard(sudoku.Board),
-		},
-	}
-	initialBranch := model.NewBranch(defaultBranch, initialCommit)
-	r := &Resolver{
-		commits: map[string]*model.Commit{
-			initialCommit.ID: initialCommit,
-		},
-		branches: map[string]*model.Branch{
-			defaultBranch: initialBranch,
-		},
-	}
-
-	r.sudoku = &model.Sudoku{
-		BranchID: defaultBranch,
-		Board:    sudoku.Board,
-	}
-	return &generated.Config{
-		Resolvers: r,
-	}, nil
+	*zap.Logger
 }
 
 func NewResolver() (*generated.Config, error) {
@@ -96,7 +71,8 @@ func NewResolver() (*generated.Config, error) {
 
 	return &generated.Config{
 		Resolvers: &Resolver{
-			repo: repo,
+			repo:   repo,
+			Logger: zap.L(),
 		},
 	}, nil
 }
@@ -121,8 +97,15 @@ func convertBoard(board [][]int) [][]model.Cell {
 
 func gitInit(board engine.Board) (*git.Repository, error) {
 	// Initialize repo
-	fs := memfs.New()
-	repo, err := git.Init(memory.NewStorage(), fs)
+	//fs := memfs.New()
+	path, err := ioutil.TempDir("", "gitdoku")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create a temp dir for repo: %w", err)
+	}
+	fs := osfs.New(path)
+	storerFS := osfs.New(filepath.Join(path, ".git"))
+	storer := filesystem.NewStorage(storerFS, cache.NewObjectLRUDefault())
+	repo, err := git.Init(storer, fs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize the repo: %w", err)
 	}
@@ -182,7 +165,7 @@ func gitInit(board engine.Board) (*git.Repository, error) {
 		return nil, fmt.Errorf("failed to create initial commit: %w", err)
 	}
 
-	zap.L().Info("Initialized origin repo.", zap.String("commitId", commitID.String()))
+	zap.L().Info("Initialized origin repo.", zap.String("commitId", commitID.String()), zap.String("path", path))
 
 	return repo, nil
 }
@@ -201,4 +184,39 @@ func WriteFile(fs billy.Filesystem, filename string, data []byte, perm os.FileMo
 		err = err1
 	}
 	return err
+}
+
+func MarshalBlob(data []byte) (*model.Blob, error) {
+	var board engine.Board
+	err := board.Unmarshal(data)
+	if err != nil || board == nil {
+		return nil, fmt.Errorf("unable to unmarshal data: %w", err)
+	}
+
+	// Convert from blob to board
+	b := make([][]model.Cell, 9)
+	for i, row := range board {
+		r := make([]model.Cell, 9)
+		for j, cell := range row {
+			r[j] = model.Cell{
+				Immutable: cell.Immutable,
+				Val:       cell.Value,
+				Notes:     cell.Notes.AsNumbers(),
+			}
+		}
+		b[i] = r
+	}
+
+	return &model.Blob{Board: b}, nil
+}
+
+func ConvertBranch(ref *plumbing.Reference) *model.Branch {
+	if ref == nil {
+		return nil
+	}
+
+	return &model.Branch{
+		ID:       ref.Name().Short(),
+		CommitID: ref.Hash().String(),
+	}
 }
