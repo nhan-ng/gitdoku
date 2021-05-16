@@ -3,14 +3,22 @@ package graph
 
 import (
 	"fmt"
-	"io/ioutil"
-	"path/filepath"
+	"io"
+	"os"
+	"time"
+
+	"github.com/go-git/go-git/v5/plumbing/object"
+
+	"github.com/go-git/go-billy/v5"
+
+	"github.com/go-git/go-billy/v5/memfs"
+	"github.com/go-git/go-git/v5/storage/memory"
 
 	"go.uber.org/zap"
 
+	git "github.com/go-git/go-git/v5"
 	"github.com/google/uuid"
 
-	git "github.com/libgit2/git2go/v31"
 	"github.com/nhan-ng/sudoku/graph/generated"
 	"github.com/nhan-ng/sudoku/graph/model"
 	"github.com/nhan-ng/sudoku/internal/engine"
@@ -26,6 +34,8 @@ const sampleSudoku = `070308100
 526000700
 000000009`
 
+const gameFile = "game.dat"
+
 // This file will not be regenerated automatically.
 //
 // It serves as dependency injection for your app, add any dependencies you require here.
@@ -35,8 +45,7 @@ type Resolver struct {
 	commits  map[string]*model.Commit
 	branches map[string]*model.Branch
 
-	origin      *git.Repository
-	branchRepos map[string]*git.Repository
+	repo *git.Repository
 }
 
 func NewResolverOld() (*generated.Config, error) {
@@ -75,13 +84,20 @@ func NewResolverOld() (*generated.Config, error) {
 }
 
 func NewResolver() (*generated.Config, error) {
-	_, err := engine.ReadBoard(sampleSudoku)
+	board, err := engine.ReadBoard(sampleSudoku)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create a Sudoku: %w", err)
 	}
 
+	repo, err := gitInit(board)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize git: %w", err)
+	}
+
 	return &generated.Config{
-		Resolvers: &Resolver{},
+		Resolvers: &Resolver{
+			repo: repo,
+		},
 	}, nil
 }
 
@@ -103,19 +119,86 @@ func convertBoard(board [][]int) [][]model.Cell {
 	return result
 }
 
-func gitInit() (*git.Repository, error) {
-	path, err := ioutil.TempDir("", "gitdoku")
-	if err != nil {
-		return nil, fmt.Errorf("failed to get a temp dir: %w", err)
-	}
-
-	originPath := filepath.Join(path, "origin")
-	repo, err := git.InitRepository(originPath, true)
+func gitInit(board engine.Board) (*git.Repository, error) {
+	// Initialize repo
+	fs := memfs.New()
+	repo, err := git.Init(memory.NewStorage(), fs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize the repo: %w", err)
 	}
 
-	zap.L().Info("Initialized origin repo.", zap.String("originPath", originPath))
+	w, err := repo.Worktree()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create worktree: %w", err)
+	}
+
+	// Add board to index
+	boardContent, err := board.Marshal()
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal board: %w", err)
+	}
+	err = WriteFile(fs, gameFile, boardContent, 0644)
+	if err != nil {
+		return nil, fmt.Errorf("failed to write data to file: %w", err)
+	}
+	_, err = w.Add(gameFile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to add file to worktree: %w", err)
+	}
+
+	// Add board to index
+	sig := &object.Signature{
+		Name:  "Game Master",
+		Email: "gm@gitdoku.io",
+		When:  time.Now(),
+	}
+	commitID, err := w.Commit("Initial commit", &git.CommitOptions{
+		Author:    sig,
+		Committer: sig,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create initial commit: %w", err)
+	}
+
+	commits, err := repo.CommitObjects()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create initial commit: %w", err)
+	}
+
+	err = commits.ForEach(func(commit *object.Commit) error {
+		file, err := commit.File(gameFile)
+		if err != nil {
+			return err
+		}
+		content, err := file.Contents()
+		if err != nil {
+			return err
+		}
+
+		zap.L().Info("Commit: ", zap.String("commitId", commit.Hash.String()), zap.String("content", content))
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create initial commit: %w", err)
+	}
+
+	zap.L().Info("Initialized origin repo.", zap.String("commitId", commitID.String()))
 
 	return repo, nil
+}
+
+func WriteFile(fs billy.Filesystem, filename string, data []byte, perm os.FileMode) error {
+	f, err := fs.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, perm)
+	if err != nil {
+		return err
+	}
+
+	n, err := f.Write(data)
+	if err == nil && n < len(data) {
+		err = io.ErrShortWrite
+	}
+	if err1 := f.Close(); err == nil {
+		err = err1
+	}
+	return err
 }
