@@ -32,7 +32,7 @@ export const NewBranchControl = ({ onSubmit }: NewBranchControlProps) => {
     setBranchId(event.target.value);
   };
 
-  const handleSubmit = async (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     try {
       await onSubmit(branchId);

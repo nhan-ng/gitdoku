@@ -4,8 +4,10 @@ import React, { useState } from "react";
 import { BranchList } from ".";
 import {
   GetBranchesDocument,
+  GetFullBranchDocument,
   useAddBranchMutation,
   useGetBranchesQuery,
+  useMergeBranchMutation,
 } from "../../__generated__/types";
 import { NewBranchControl } from ".";
 import { MergeBranchControl } from "./MergeBranchControl";
@@ -19,6 +21,17 @@ export const Game = () => {
     refetchQueries: [
       {
         query: GetBranchesDocument,
+      },
+    ],
+  });
+
+  const [mergeBranch] = useMergeBranchMutation({
+    refetchQueries: [
+      {
+        query: GetFullBranchDocument,
+        variables: {
+          id: branchId,
+        },
       },
     ],
   });
@@ -59,6 +72,17 @@ export const Game = () => {
           branchIds={branches
             .map((branch) => branch.id)
             .filter((id) => id !== branchId)}
+          onSubmit={async (targetBranchId) => {
+            await mergeBranch({
+              variables: {
+                input: {
+                  sourceBranchId: branchId,
+                  targetBranchId,
+                  authorId: "me",
+                },
+              },
+            });
+          }}
         />
       </Box>
       <Grid item md={12}>

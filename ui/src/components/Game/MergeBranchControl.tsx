@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Autocomplete } from "@material-ui/lab";
 import {
   Button,
@@ -17,15 +17,33 @@ const MergeIcon = styled(CallMergeIcon)`
 `;
 
 export type MergeBranchControlProps = {
+  onSubmit: (targetBranchId: string) => Promise<void>;
   branchIds: string[];
 };
 
-export const MergeBranchControl = ({ branchIds }: MergeBranchControlProps) => {
+export const MergeBranchControl = ({
+  branchIds,
+  onSubmit,
+}: MergeBranchControlProps) => {
+  const [selection, setSelection] = useState("");
+
+  const handleSubmit = async (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    try {
+      await onSubmit(selection);
+      setSelection("");
+    } catch (e) {
+      console.log(e);
+    }
+  };
+
   return (
     <Grid container>
       <Grid item sm={10}>
         <Autocomplete
           id="merge-branch-input"
+          value={selection}
+          onChange={(_, value) => setSelection(value || "")}
           options={branchIds}
           renderInput={(params) => (
             <TextField
@@ -49,7 +67,7 @@ export const MergeBranchControl = ({ branchIds }: MergeBranchControlProps) => {
         />
       </Grid>
       <Grid item sm={2}>
-        <IconButton color="primary" component="span">
+        <IconButton color="primary" component="span" onClick={handleSubmit}>
           <MergeIcon />
         </IconButton>
       </Grid>

@@ -79,10 +79,17 @@ export enum CommitType {
   RemoveNote = 'REMOVE_NOTE'
 }
 
+export type MergeBranchInput = {
+  sourceBranchId: Scalars['ID'];
+  targetBranchId: Scalars['ID'];
+  authorId: Scalars['ID'];
+};
+
 export type Mutation = {
   __typename: 'Mutation';
   addCommit: Commit;
   addBranch: Branch;
+  mergeBranch: Branch;
 };
 
 
@@ -93,6 +100,11 @@ export type MutationAddCommitArgs = {
 
 export type MutationAddBranchArgs = {
   input: AddBranchInput;
+};
+
+
+export type MutationMergeBranchArgs = {
+  input: MergeBranchInput;
 };
 
 export type Query = {
@@ -224,6 +236,19 @@ export type AddBranchMutationVariables = Exact<{
 export type AddBranchMutation = (
   { __typename: 'Mutation' }
   & { addBranch: (
+    { __typename: 'Branch' }
+    & LiteBranchFragment
+  ) }
+);
+
+export type MergeBranchMutationVariables = Exact<{
+  input: MergeBranchInput;
+}>;
+
+
+export type MergeBranchMutation = (
+  { __typename: 'Mutation' }
+  & { mergeBranch: (
     { __typename: 'Branch' }
     & LiteBranchFragment
   ) }
@@ -506,6 +531,39 @@ export function useAddBranchMutation(baseOptions?: Apollo.MutationHookOptions<Ad
 export type AddBranchMutationHookResult = ReturnType<typeof useAddBranchMutation>;
 export type AddBranchMutationResult = Apollo.MutationResult<AddBranchMutation>;
 export type AddBranchMutationOptions = Apollo.BaseMutationOptions<AddBranchMutation, AddBranchMutationVariables>;
+export const MergeBranchDocument = gql`
+    mutation MergeBranch($input: MergeBranchInput!) {
+  mergeBranch(input: $input) {
+    ...LiteBranch
+  }
+}
+    ${LiteBranchFragmentDoc}`;
+export type MergeBranchMutationFn = Apollo.MutationFunction<MergeBranchMutation, MergeBranchMutationVariables>;
+
+/**
+ * __useMergeBranchMutation__
+ *
+ * To run a mutation, you first call `useMergeBranchMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useMergeBranchMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [mergeBranchMutation, { data, loading, error }] = useMergeBranchMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useMergeBranchMutation(baseOptions?: Apollo.MutationHookOptions<MergeBranchMutation, MergeBranchMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<MergeBranchMutation, MergeBranchMutationVariables>(MergeBranchDocument, options);
+      }
+export type MergeBranchMutationHookResult = ReturnType<typeof useMergeBranchMutation>;
+export type MergeBranchMutationResult = Apollo.MutationResult<MergeBranchMutation>;
+export type MergeBranchMutationOptions = Apollo.BaseMutationOptions<MergeBranchMutation, MergeBranchMutationVariables>;
 export const OnCommitAddedDocument = gql`
     subscription OnCommitAdded($branchId: ID!) {
   commitAdded(branchId: $branchId) {

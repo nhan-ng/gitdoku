@@ -239,14 +239,21 @@ func (r *mutationResolver) MergeBranch(ctx context.Context, input model.MergeBra
 		return nil, gqlerrors.ErrCommitNotFound(targetRef.Hash().String())
 	}
 
-	base, err := sourceCommit.MergeBase(targetCommit)
+	bases, err := sourceCommit.MergeBase(targetCommit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find merge base: %w", err)
 	}
 
-	sourceCommits := r.repo.CommitObjects()
+	// If base == source then we can fast-forward because source is ancestor of target
+	if len(bases) == 1 && bases[0].Hash == sourceRef.Hash() {
+		newRef := plumbing.NewHashReference(sourceRef.Name(), targetCommit.Hash)
+		r.repo.Storer.SetReference(newRef)
 
-	panic(fmt.Errorf("not implemented"))
+		return ConvertBranch(newRef), nil
+	}
+
+	// Not support other form of merging yet :(
+	return nil, fmt.Errorf("only fast-forward is supported")
 }
 
 func (r *queryResolver) Sudoku(ctx context.Context) (*model.Sudoku, error) {

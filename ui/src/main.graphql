@@ -51,6 +51,12 @@ mutation AddBranch($input: AddBranchInput!) {
   }
 }
 
+mutation MergeBranch($input: MergeBranchInput!) {
+  mergeBranch(input: $input) {
+    ...LiteBranch
+  }
+}
+
 subscription OnCommitAdded($branchId: ID!) {
   commitAdded(branchId: $branchId) {
     ...Commit
