@@ -61,8 +61,8 @@ export type Commit = {
   id: Scalars['ID'];
   authorId: Scalars['ID'];
   authorTimestamp: Scalars['Time'];
-  parentId?: Maybe<Scalars['ID']>;
-  parent?: Maybe<Commit>;
+  parentIds: Array<Scalars['ID']>;
+  parents: Array<Commit>;
   blob: Blob;
   type: CommitType;
   row: Scalars['Int'];
@@ -244,7 +244,7 @@ export type OnCommitAddedSubscription = (
 
 export type CommitFragment = (
   { __typename: 'Commit' }
-  & Pick<Commit, 'id' | 'type' | 'row' | 'col' | 'val'>
+  & Pick<Commit, 'id' | 'type' | 'row' | 'col' | 'val' | 'authorId' | 'authorTimestamp'>
   & CommitBlobFragment
 );
 
@@ -278,6 +278,8 @@ export const CommitFragmentDoc = gql`
   row
   col
   val
+  authorId
+  authorTimestamp
 }
     ${CommitBlobFragmentDoc}`;
 export const LiteBranchFragmentDoc = gql`

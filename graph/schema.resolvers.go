@@ -215,6 +215,40 @@ func (r *mutationResolver) AddBranch(ctx context.Context, input model.AddBranchI
 	return ConvertBranch(newRef), nil
 }
 
+func (r *mutationResolver) MergeBranch(ctx context.Context, input model.MergeBranchInput) (*model.Branch, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	// Get source
+	sourceRef, err := r.repo.Reference(plumbing.NewBranchReferenceName(input.SourceBranchID), false)
+	if err != nil {
+		return nil, gqlerrors.ErrBranchNotFound(input.SourceBranchID)
+	}
+	sourceCommit, err := r.repo.CommitObject(sourceRef.Hash())
+	if err != nil {
+		return nil, gqlerrors.ErrCommitNotFound(sourceRef.Hash().String())
+	}
+
+	// Get target
+	targetRef, err := r.repo.Reference(plumbing.NewBranchReferenceName(input.TargetBranchID), false)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get target branch: %w", err)
+	}
+	targetCommit, err := r.repo.CommitObject(targetRef.Hash())
+	if err != nil {
+		return nil, gqlerrors.ErrCommitNotFound(targetRef.Hash().String())
+	}
+
+	base, err := sourceCommit.MergeBase(targetCommit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find merge base: %w", err)
+	}
+
+	sourceCommits := r.repo.CommitObjects()
+
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *queryResolver) Sudoku(ctx context.Context) (*model.Sudoku, error) {
 	return r.sudoku, nil
 }

@@ -6,7 +6,8 @@ import (
 )
 
 type options struct {
-	port int
+	useFilesystem bool
+	port          int
 }
 
 func NewServerCmd() *cobra.Command {
@@ -19,10 +20,11 @@ func NewServerCmd() *cobra.Command {
 	}
 
 	cmd.PersistentFlags().IntVarP(&opts.port, "port", "p", 8808, "The serving port.")
+	cmd.PersistentFlags().BoolVarP(&opts.useFilesystem, "filesystem", "f", false, "Whether to use filesystem.")
 
 	return cmd
 }
 
 func (o *options) runE(_ *cobra.Command, _ []string) error {
-	return server.Serve()
+	return server.Serve(o.useFilesystem)
 }

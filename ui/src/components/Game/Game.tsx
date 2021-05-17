@@ -27,7 +27,12 @@ export const Game = () => {
     return <LinearProgress />;
   }
 
-  const branches = data.branches;
+  // Revert sort by commit timestamp, i.e. larger timestamp first
+  const branches = [...data.branches].sort(
+    (a, b) =>
+      new Date(b.commit.authorTimestamp).getTime() -
+      new Date(a.commit.authorTimestamp).getTime()
+  );
 
   return (
     <Grid container>
@@ -57,7 +62,11 @@ export const Game = () => {
         />
       </Box>
       <Grid item md={12}>
-        <BranchList onBranchClicked={setBranchId} branches={branches} />
+        <BranchList
+          onBranchClicked={setBranchId}
+          branches={branches}
+          currentBranchId={branchId}
+        />
       </Grid>
     </Grid>
   );

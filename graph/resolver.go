@@ -12,14 +12,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-git/go-billy/v5/memfs"
+	"github.com/go-git/go-git/v5/storage/memory"
+
 	"github.com/go-git/go-git/v5/storage"
 
 	"github.com/go-git/go-billy/v5/osfs"
 	"github.com/go-git/go-git/v5/plumbing/cache"
 	"github.com/go-git/go-git/v5/storage/filesystem"
-
-	"github.com/go-git/go-billy/v5/memfs"
-	"github.com/go-git/go-git/v5/storage/memory"
 
 	"github.com/go-git/go-git/v5/plumbing"
 
@@ -72,8 +72,8 @@ type BranchObserver struct {
 	Observers map[string]chan *model.Commit
 }
 
-func NewResolver() (*generated.Config, error) {
-	resolver, err := newGame()
+func NewResolver(useFilesystem bool) (*generated.Config, error) {
+	resolver, err := newGame(useFilesystem)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize a new game: %w", err)
 	}
@@ -82,7 +82,7 @@ func NewResolver() (*generated.Config, error) {
 	}, nil
 }
 
-func newGame() (*Resolver, error) {
+func newGame(useFilesystem bool) (*Resolver, error) {
 	// Read the board
 	board, err := engine.ReadBoard(sampleSudoku)
 	if err != nil {
@@ -92,8 +92,7 @@ func newGame() (*Resolver, error) {
 	// Initialize the backing fs
 	var fs billy.Filesystem
 	var storer storage.Storer
-	useFS := false
-	if useFS {
+	if useFilesystem {
 		// Initialize repo folder
 		path, err := ioutil.TempDir("", "gitdoku")
 		if err != nil {

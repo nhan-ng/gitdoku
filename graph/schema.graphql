@@ -8,6 +8,13 @@ type Query {
 type Mutation {
   addCommit(input: AddCommitInput!): Commit!
   addBranch(input: AddBranchInput!): Branch!
+  mergeBranch(input: MergeBranchInput!): Branch!
+}
+
+input MergeBranchInput {
+  sourceBranchId: ID!
+  targetBranchId: ID!
+  authorId: ID!
 }
 
 type Subscription {

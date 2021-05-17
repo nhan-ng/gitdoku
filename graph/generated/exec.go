@@ -80,8 +80,9 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		AddBranch func(childComplexity int, input model.AddBranchInput) int
-		AddCommit func(childComplexity int, input model.AddCommitInput) int
+		AddBranch   func(childComplexity int, input model.AddBranchInput) int
+		AddCommit   func(childComplexity int, input model.AddCommitInput) int
+		MergeBranch func(childComplexity int, input model.MergeBranchInput) int
 	}
 
 	Query struct {
@@ -113,6 +114,7 @@ type CommitResolver interface {
 type MutationResolver interface {
 	AddCommit(ctx context.Context, input model.AddCommitInput) (*model.Commit, error)
 	AddBranch(ctx context.Context, input model.AddBranchInput) (*model.Branch, error)
+	MergeBranch(ctx context.Context, input model.MergeBranchInput) (*model.Branch, error)
 }
 type QueryResolver interface {
 	Sudoku(ctx context.Context) (*model.Sudoku, error)
@@ -292,6 +294,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.AddCommit(childComplexity, args["input"].(model.AddCommitInput)), true
 
+	case "Mutation.mergeBranch":
+		if e.complexity.Mutation.MergeBranch == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_mergeBranch_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.MergeBranch(childComplexity, args["input"].(model.MergeBranchInput)), true
+
 	case "Query.branch":
 		if e.complexity.Query.Branch == nil {
 			break
@@ -454,6 +468,13 @@ var sources = []*ast.Source{
 type Mutation {
   addCommit(input: AddCommitInput!): Commit!
   addBranch(input: AddBranchInput!): Branch!
+  mergeBranch(input: MergeBranchInput!): Branch!
+}
+
+input MergeBranchInput {
+  sourceBranchId: ID!
+  targetBranchId: ID!
+  authorId: ID!
 }
 
 type Subscription {
@@ -568,6 +589,21 @@ func (ec *executionContext) field_Mutation_addCommit_args(ctx context.Context, r
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 		arg0, err = ec.unmarshalNAddCommitInput2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐAddCommitInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_mergeBranch_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.MergeBranchInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNMergeBranchInput2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐMergeBranchInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1372,6 +1408,48 @@ func (ec *executionContext) _Mutation_addBranch(ctx context.Context, field graph
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Mutation().AddBranch(rctx, args["input"].(model.AddBranchInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Branch)
+	fc.Result = res
+	return ec.marshalNBranch2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐBranch(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_mergeBranch(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_mergeBranch_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().MergeBranch(rctx, args["input"].(model.MergeBranchInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2945,6 +3023,42 @@ func (ec *executionContext) unmarshalInputAddCommitInput(ctx context.Context, ob
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputMergeBranchInput(ctx context.Context, obj interface{}) (model.MergeBranchInput, error) {
+	var it model.MergeBranchInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "sourceBranchId":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("sourceBranchId"))
+			it.SourceBranchID, err = ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "targetBranchId":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("targetBranchId"))
+			it.TargetBranchID, err = ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "authorId":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("authorId"))
+			it.AuthorID, err = ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -3189,6 +3303,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "addBranch":
 			out.Values[i] = ec._Mutation_addBranch(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "mergeBranch":
+			out.Values[i] = ec._Mutation_mergeBranch(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -3947,6 +4066,11 @@ func (ec *executionContext) marshalNInt2ᚕᚕintᚄ(ctx context.Context, sel as
 	}
 
 	return ret
+}
+
+func (ec *executionContext) unmarshalNMergeBranchInput2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐMergeBranchInput(ctx context.Context, v interface{}) (model.MergeBranchInput, error) {
+	res, err := ec.unmarshalInputMergeBranchInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {

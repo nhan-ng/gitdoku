@@ -64,6 +64,8 @@ fragment Commit on Commit {
   row
   col
   val
+  authorId
+  authorTimestamp
 }
 
 fragment CommitBlob on Commit {

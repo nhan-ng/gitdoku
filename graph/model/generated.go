@@ -22,6 +22,12 @@ type AddCommitInput struct {
 	Val      int        `json:"val"`
 }
 
+type MergeBranchInput struct {
+	SourceBranchID string `json:"sourceBranchId"`
+	TargetBranchID string `json:"targetBranchId"`
+	AuthorID       string `json:"authorId"`
+}
+
 type CommitType string
 
 const (

@@ -25,9 +25,9 @@ var (
 	ErrDefaultGraphQL = errors.New("internal server error")
 )
 
-func Serve() error {
+func Serve(useFilesytem bool) error {
 	// Schema
-	resolver, err := graph.NewResolver()
+	resolver, err := graph.NewResolver(useFilesytem)
 	if closer, ok := resolver.Resolvers.(io.Closer); ok {
 		defer closer.Close()
 	}
