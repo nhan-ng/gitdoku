@@ -7,7 +7,7 @@ import {
   useGetFullBranchQuery,
 } from "__generated__/types";
 import React, { useEffect, useState } from "react";
-import { Button, Grid, Typography } from "@material-ui/core";
+import { Button, Grid, LinearProgress, Typography } from "@material-ui/core";
 import { AppLoading } from "components/AppLoading";
 
 export type SudokuProps = {
@@ -53,7 +53,7 @@ export function Sudoku({ branchId }: SudokuProps) {
   }, [subscribeToMore, branchId]);
 
   if (loading) {
-    return <AppLoading />;
+    return <LinearProgress />;
   }
 
   if (error || !data) {

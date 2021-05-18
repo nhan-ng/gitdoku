@@ -6,6 +6,7 @@ package graph
 import (
 	"context"
 	"fmt"
+	"sort"
 
 	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -159,7 +160,7 @@ func (r *mutationResolver) AddCommit(ctx context.Context, input model.AddCommitI
 	commitMessage := fmt.Sprintf("%s %d %d %d", input.Type, input.Row, input.Col, input.Val)
 
 	// Commit the change
-	c, err := r.CommitBoard(board, commitMessage)
+	c, err := r.CommitBoard(wt, board, commitMessage)
 	if err != nil {
 		return nil, fmt.Errorf("failed to commit the board change: %w", err)
 	}
@@ -244,16 +245,109 @@ func (r *mutationResolver) MergeBranch(ctx context.Context, input model.MergeBra
 		return nil, fmt.Errorf("failed to find merge base: %w", err)
 	}
 
+	// Cris-cross scenario
+	// Recursive merge strategy would create a virtual branch, but that's a bit complicated
+	//	---1---o---A
+	//	    \ /
+	//	     X
+	//	    / \
+	//	---2---o---o---B
+	if len(bases) != 1 {
+		return nil, fmt.Errorf("failed to merge branches with more than 1 ancestors")
+	}
+
 	// If base == source then we can fast-forward because source is ancestor of target
-	if len(bases) == 1 && bases[0].Hash == sourceRef.Hash() {
+	if bases[0].Hash == sourceRef.Hash() {
 		newRef := plumbing.NewHashReference(sourceRef.Name(), targetCommit.Hash)
 		r.repo.Storer.SetReference(newRef)
 
 		return ConvertBranch(newRef), nil
 	}
 
+	baseCommitReached := fmt.Errorf("base commit reached")
+
+	// Otherwise, use operation-base merge instead of git 3-way recursive state-base merge
+	// Coalesce the commits of the 2 branches, chronologically sorted and perform the commits on top the base ancestor
+	commits := make(map[plumbing.Hash]*object.Commit)
+	base := bases[0]
+	sourceCommitsIter, err := r.repo.Log(&git.LogOptions{
+		From:  sourceCommit.Hash,
+		Order: git.LogOrderCommitterTime,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get the commits from source branch")
+	}
+	err = sourceCommitsIter.ForEach(func(c *object.Commit) error {
+		// We are done here
+		if base.Hash == c.Hash {
+			return baseCommitReached
+		}
+
+		commits[c.Hash] = c
+		return nil
+	})
+	if err != nil && err != baseCommitReached {
+		return nil, fmt.Errorf("failed to iterate through commits from source branch: %w", err)
+	}
+
+	targetCommitsIter, err := r.repo.Log(&git.LogOptions{
+		From:  targetCommit.Hash,
+		Order: git.LogOrderCommitterTime,
+	})
+	err = targetCommitsIter.ForEach(func(c *object.Commit) error {
+		if base.Hash == c.Hash {
+			return baseCommitReached
+		}
+
+		commits[c.Hash] = c
+		return nil
+	})
+	if err != nil && err != baseCommitReached {
+		return nil, fmt.Errorf("failed to iterate through commits from target branch: %w", err)
+	}
+
+	// Sort commit based on commit time
+	sortedCommits := make([]*object.Commit, 0, len(commits))
+	for _, commit := range commits {
+		sortedCommits = append(sortedCommits, commit)
+	}
+	sort.SliceStable(sortedCommits, func(i, j int) bool {
+		a := sortedCommits[i]
+		b := sortedCommits[j]
+		return a.Author.When.Before(b.Author.When)
+	})
+
+	board, err := ReadBoard(base)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get base board: %w", err)
+	}
+
+	// For each commits, apply the change
+	for _, commit := range sortedCommits {
+		board, err = ApplyCommit(board, commit)
+		if err != nil {
+			return nil, fmt.Errorf("failed to apply commit %s: %w", commit.Hash.String(), err)
+		}
+	}
+
+	// Commit that new board as the merge commit
+	wt, err := r.repo.Worktree()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get the worktree: %w", err)
+	}
+	err = wt.Checkout(&git.CheckoutOptions{
+		Branch: sourceRef.Name(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to checkout the source commit: %w", err)
+	}
+	_, err = r.CommitBoard(wt, board, fmt.Sprintf("MERGE %s %s", input.SourceBranchID, input.TargetBranchID))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create a merge commit: %w", err)
+	}
+
 	// Not support other form of merging yet :(
-	return nil, fmt.Errorf("only fast-forward is supported")
+	return ConvertBranch(sourceRef), nil
 }
 
 func (r *queryResolver) Sudoku(ctx context.Context) (*model.Sudoku, error) {

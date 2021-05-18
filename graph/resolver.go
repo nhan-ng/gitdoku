@@ -260,21 +260,16 @@ func (r *Resolver) ReadBoard() (engine.Board, error) {
 	return board, nil
 }
 
-func (r *Resolver) CommitBoard(board engine.Board, message string) (*object.Commit, error) {
+func (r *Resolver) CommitBoard(worktree *git.Worktree, board engine.Board, message string) (*object.Commit, error) {
 	// Add board to index
 	boardContent, err := board.Marshal()
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal board: %w", err)
 	}
 
-	wt, err := r.repo.Worktree()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get worktree: %w", err)
-	}
-	r.writeGameFile(boardContent)
-
 	// Add the change
-	_, err = wt.Add(gameFile)
+	r.writeGameFile(boardContent)
+	_, err = worktree.Add(gameFile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to add file to worktree: %w", err)
 	}
@@ -285,7 +280,7 @@ func (r *Resolver) CommitBoard(board engine.Board, message string) (*object.Comm
 		Email: "gm@gitdoku.io",
 		When:  time.Now(),
 	}
-	commitID, err := wt.Commit(message, &git.CommitOptions{
+	commitID, err := worktree.Commit(message, &git.CommitOptions{
 		Author:    sig,
 		Committer: sig,
 	})
@@ -307,6 +302,50 @@ func (r *Resolver) writeGameFile(data []byte) error {
 		return fmt.Errorf("failed to write data to file: %w", err)
 	}
 	return nil
+}
+
+func ApplyCommit(board engine.Board, commit *object.Commit) (engine.Board, error) {
+	// Parse the commit message
+	parts := strings.Split(commit.Message, " ")
+	commitType := parts[0]
+	switch model.CommitType(commitType) {
+	case model.CommitTypeAddFill:
+		numbers, err := parseInts(parts[1:])
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse numbers from commit message: %w", err)
+		}
+		row, col, val := numbers[0], numbers[1], numbers[2]
+		board[row][col].Value = val
+
+	case model.CommitTypeRemoveFill:
+		numbers, err := parseInts(parts[1:])
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse numbers from commit message: %w", err)
+		}
+		row, col := numbers[0], numbers[1]
+		board[row][col].Value = 0
+
+	case model.CommitTypeAddNote:
+		numbers, err := parseInts(parts[1:])
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse numbers from commit message: %w", err)
+		}
+		row, col, val := numbers[0], numbers[1], numbers[2]
+		board[row][col].Notes[val] = true
+
+	case model.CommitTypeRemoveNote:
+		numbers, err := parseInts(parts[1:])
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse numbers from commit message: %w", err)
+		}
+		row, col, val := numbers[0], numbers[1], numbers[2]
+		board[row][col].Notes[val] = false
+
+	case model.CommitTypeUnknown:
+		return nil, fmt.Errorf("unreachable commit type %s", commitType)
+	}
+
+	return board, nil
 }
 
 func ReadBoard(commit *object.Commit) (engine.Board, error) {
@@ -406,23 +445,28 @@ func ConvertCommit(commit *object.Commit) (*model.Commit, error) {
 		parts := strings.Split(commit.Message, " ")
 		result.Type = model.CommitType(parts[0])
 
-		row, err := strconv.Atoi(parts[1])
+		numbers, err := parseInts(parts[1:])
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse row in message: %w", err)
+			return nil, fmt.Errorf("failed to parse numbers from commit message: %w", err)
 		}
-		result.Row = row
+		result.Row, result.Col, result.Val = numbers[0], numbers[1], numbers[2]
+	}
 
-		col, err := strconv.Atoi(parts[2])
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse col in message: %w", err)
-		}
-		result.Col = col
+	return result, nil
+}
 
-		val, err := strconv.Atoi(parts[3])
+func parseInts(inputs []string) ([]int, error) {
+	if inputs == nil {
+		return nil, nil
+	}
+
+	result := make([]int, len(inputs))
+	var err error
+	for i, input := range inputs {
+		result[i], err = strconv.Atoi(input)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse value in message: %w", err)
+			return nil, fmt.Errorf("failed to convert number %s: %w", input, err)
 		}
-		result.Val = val
 	}
 
 	return result, nil
