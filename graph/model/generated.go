@@ -35,8 +35,8 @@ const (
 	CommitTypeInitial    CommitType = "INITIAL"
 	CommitTypeAddFill    CommitType = "ADD_FILL"
 	CommitTypeRemoveFill CommitType = "REMOVE_FILL"
-	CommitTypeAddNote    CommitType = "ADD_NOTE"
-	CommitTypeRemoveNote CommitType = "REMOVE_NOTE"
+	CommitTypeToggleNote CommitType = "TOGGLE_NOTE"
+	CommitTypeMerge      CommitType = "MERGE"
 )
 
 var AllCommitType = []CommitType{
@@ -44,13 +44,13 @@ var AllCommitType = []CommitType{
 	CommitTypeInitial,
 	CommitTypeAddFill,
 	CommitTypeRemoveFill,
-	CommitTypeAddNote,
-	CommitTypeRemoveNote,
+	CommitTypeToggleNote,
+	CommitTypeMerge,
 }
 
 func (e CommitType) IsValid() bool {
 	switch e {
-	case CommitTypeUnknown, CommitTypeInitial, CommitTypeAddFill, CommitTypeRemoveFill, CommitTypeAddNote, CommitTypeRemoveNote:
+	case CommitTypeUnknown, CommitTypeInitial, CommitTypeAddFill, CommitTypeRemoveFill, CommitTypeToggleNote, CommitTypeMerge:
 		return true
 	}
 	return false

@@ -17,6 +17,7 @@ import {
   TableCellProps,
   LinearProgress,
 } from "@material-ui/core";
+import { getNodeMajorVersion } from "typescript";
 
 // const backgroundColor = "#FFF";
 // const blue = "hsl(210, 88%, 56%)";
@@ -71,18 +72,22 @@ type SelectedCell = {
 };
 
 export type SudokuBoardProps = {
-  readOnly: boolean;
   scale: number;
   board: Cell[][];
+  inputMode: InputMode;
 };
 
-export function SudokuBoard({ board, scale, readOnly }: SudokuBoardProps) {
+export type InputMode = "fill" | "note" | "readonly";
+
+export function SudokuBoard({ board, scale, inputMode }: SudokuBoardProps) {
   const branchId = useBranchContext();
   const [selectedCell, setSelectedCell] = useState<SelectedCell>();
-  const [addCommit] = useAddCommitMutation();
+  const [addCommit, { loading }] = useAddCommitMutation();
+
+  const isReadOnly = inputMode === "readonly";
 
   function onCellClicked(row: number, col: number) {
-    if (readOnly) {
+    if (isReadOnly) {
       return;
     }
     if (!selectedCell) {
@@ -96,37 +101,71 @@ export function SudokuBoard({ board, scale, readOnly }: SudokuBoardProps) {
 
   console.log("rerender");
 
+  function moveSelectedCell(
+    selectedCell: SelectedCell,
+    rowDelta: number,
+    colDelta: number
+  ) {
+    const newRow = Math.min(8, Math.max(0, selectedCell.row + rowDelta));
+    const newCol = Math.min(8, Math.max(0, selectedCell.col + colDelta));
+    setSelectedCell({ row: newRow, col: newCol });
+  }
+
   async function onKeyDown(e: React.KeyboardEvent<HTMLTableElement>) {
     e.preventDefault();
     console.log("Key down", e.key);
-    if (!selectedCell || readOnly) {
+    if (!selectedCell || isReadOnly) {
       return;
     }
 
+    // Move selected cell
+    switch (e.key) {
+      case "ArrowDown":
+        moveSelectedCell(selectedCell, 1, 0);
+        return;
+
+      case "ArrowLeft":
+        moveSelectedCell(selectedCell, 0, -1);
+        return;
+
+      case "ArrowRight":
+        moveSelectedCell(selectedCell, 0, 1);
+        return;
+
+      case "ArrowUp":
+        moveSelectedCell(selectedCell, -1, 0);
+        return;
+    }
+
+    // If the input is number 1-9
     const action =
-      e.key >= "1" && e.key <= "9"
-        ? CommitType.AddFill
+      "1" <= e.key && e.key <= "9"
+        ? inputMode === "fill"
+          ? CommitType.AddFill
+          : CommitType.ToggleNote
         : e.key === "0" || e.key === "Backspace" || e.key === "Delete"
         ? CommitType.RemoveFill
         : CommitType.Unknown;
 
-    if (action !== CommitType.Unknown) {
-      console.log("Add new commit", action);
-      try {
-        await addCommit({
-          variables: {
-            input: {
-              row: selectedCell.row,
-              col: selectedCell.col,
-              val: parseInt(e.key, 10) || 0,
-              type: action,
-              branchId: branchId,
-            },
+    if (action === CommitType.Unknown) {
+      return;
+    }
+
+    console.log("Add new commit", action);
+    try {
+      await addCommit({
+        variables: {
+          input: {
+            row: selectedCell.row,
+            col: selectedCell.col,
+            val: parseInt(e.key, 10) || 0,
+            type: action,
+            branchId: branchId,
           },
-        });
-      } catch (e) {
-        console.log(e);
-      }
+        },
+      });
+    } catch (e) {
+      console.log(e);
     }
   }
 
@@ -177,6 +216,7 @@ export function SudokuBoard({ board, scale, readOnly }: SudokuBoardProps) {
             })}
           </TableBody>
         </SudokuTable>
+        {loading && <LinearProgress />}
       </Box>
     </SudokuTableContainer>
   );

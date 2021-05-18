@@ -12,6 +12,8 @@ import {
 } from "@apollo/client";
 import { WebSocketLink } from "@apollo/client/link/ws";
 import { getMainDefinition } from "@apollo/client/utilities";
+import "@fontsource/roboto";
+import { CssBaseline } from "@material-ui/core";
 
 const httpLink = new HttpLink({
   uri: "http://localhost:9999/graphql",
@@ -42,6 +44,7 @@ const client = new ApolloClient({
 ReactDOM.render(
   <React.StrictMode>
     <ApolloProvider client={client}>
+      <CssBaseline />
       <App />
     </ApolloProvider>
   </React.StrictMode>,

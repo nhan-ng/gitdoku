@@ -522,8 +522,8 @@ enum CommitType {
   INITIAL,
   ADD_FILL,
   REMOVE_FILL,
-  ADD_NOTE,
-  REMOVE_NOTE,
+  TOGGLE_NOTE,
+  MERGE,
 }
 
 type Blob {

@@ -1,4 +1,4 @@
-import { History, SudokuBoard } from ".";
+import { History, InputMode, SudokuBoard } from ".";
 import { BranchContextProvider } from "contexts/BranchContextProvider";
 import {
   OnCommitAddedDocument,
@@ -7,14 +7,24 @@ import {
   useGetFullBranchQuery,
 } from "__generated__/types";
 import React, { useEffect, useState } from "react";
-import { Button, Grid, LinearProgress, Typography } from "@material-ui/core";
+import {
+  Box,
+  Button,
+  Grid,
+  LinearProgress,
+  Typography,
+} from "@material-ui/core";
 import { AppLoading } from "components/AppLoading";
+import { Fab } from "@material-ui/core";
+import EditIcon from "@material-ui/icons/Edit";
+import NoteIcon from "@material-ui/icons/Note";
 
 export type SudokuProps = {
   branchId: string;
 };
 
 export function Sudoku({ branchId }: SudokuProps) {
+  const [isFillInputMode, setIsFillInputMode] = useState(true); // If false -> Note input mode
   const { data, error, loading, subscribeToMore } = useGetFullBranchQuery({
     variables: {
       id: branchId,
@@ -67,8 +77,29 @@ export function Sudoku({ branchId }: SudokuProps) {
     <BranchContextProvider id={branchId}>
       <Grid container direction="row" justify="center" alignItems="flex-start">
         <Grid item md={8}>
-          <Typography>{branchId}</Typography>
-          <SudokuBoard board={board} scale={1} readOnly={false} />
+          <Grid
+            container
+            direction="row"
+            justify="flex-start"
+            alignItems="flex-start"
+          >
+            <Grid item md={9}>
+              <Typography variant="h5">{branchId}</Typography>
+            </Grid>
+            <Grid item md={3}>
+              <Fab
+                color={isFillInputMode ? "primary" : "secondary"}
+                onClick={() => setIsFillInputMode((prev) => !prev)}
+              >
+                {isFillInputMode ? <EditIcon /> : <NoteIcon />}
+              </Fab>
+            </Grid>
+          </Grid>
+          <SudokuBoard
+            board={board}
+            scale={1}
+            inputMode={isFillInputMode ? "fill" : "note"}
+          />
         </Grid>
         <Grid item md={4}>
           <History commits={commits} />

@@ -1,6 +1,6 @@
 import { ListItem, ListItemText } from "@material-ui/core";
 import React from "react";
-import { CommitFragment } from "../../__generated__/types";
+import { CommitFragment, CommitType } from "../../__generated__/types";
 import { FixedSizeList, ListChildComponentProps } from "react-window";
 
 export type HistoryProps = {
@@ -14,6 +14,9 @@ type HistoryRowProps = {
 export const History = ({ commits }: HistoryProps) => {
   const HistoryRow = ({ index, style }: ListChildComponentProps) => {
     const commit = commits[index];
+    switch (commit.type) {
+      case CommitType.Initial:
+    }
     return (
       <ListItem button style={style} key={index}>
         <ListItemText

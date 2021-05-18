@@ -150,11 +150,8 @@ func (r *mutationResolver) AddCommit(ctx context.Context, input model.AddCommitI
 	case model.CommitTypeRemoveFill:
 		cell.Value = 0
 
-	case model.CommitTypeAddNote:
-		cell.Notes[input.Val-1] = true
-
-	case model.CommitTypeRemoveNote:
-		cell.Notes[input.Val-1] = false
+	case model.CommitTypeToggleNote:
+		cell.Notes[input.Val-1] = !cell.Notes[input.Val-1]
 	}
 
 	commitMessage := fmt.Sprintf("%s %d %d %d", input.Type, input.Row, input.Col, input.Val)
@@ -337,6 +334,7 @@ func (r *mutationResolver) MergeBranch(ctx context.Context, input model.MergeBra
 	}
 	err = wt.Checkout(&git.CheckoutOptions{
 		Branch: sourceRef.Name(),
+		Force:  true,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to checkout the source commit: %w", err)

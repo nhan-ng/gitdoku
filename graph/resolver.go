@@ -325,21 +325,13 @@ func ApplyCommit(board engine.Board, commit *object.Commit) (engine.Board, error
 		row, col := numbers[0], numbers[1]
 		board[row][col].Value = 0
 
-	case model.CommitTypeAddNote:
+	case model.CommitTypeToggleNote:
 		numbers, err := parseInts(parts[1:])
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse numbers from commit message: %w", err)
 		}
 		row, col, val := numbers[0], numbers[1], numbers[2]
-		board[row][col].Notes[val] = true
-
-	case model.CommitTypeRemoveNote:
-		numbers, err := parseInts(parts[1:])
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse numbers from commit message: %w", err)
-		}
-		row, col, val := numbers[0], numbers[1], numbers[2]
-		board[row][col].Notes[val] = false
+		board[row][col].Notes[val-1] = !board[row][col].Notes[val-1]
 
 	case model.CommitTypeUnknown:
 		return nil, fmt.Errorf("unreachable commit type %s", commitType)
@@ -440,11 +432,11 @@ func ConvertCommit(commit *object.Commit) (*model.Commit, error) {
 		AuthorTimestamp: commit.Author.When,
 	}
 
-	// Parse message only if it's not a merge commit, a merge commit has multiple parents
-	if len(parentIDs) == 1 {
-		parts := strings.Split(commit.Message, " ")
-		result.Type = model.CommitType(parts[0])
-
+	// Parse message
+	parts := strings.Split(commit.Message, " ")
+	result.Type = model.CommitType(parts[0])
+	switch result.Type {
+	case model.CommitTypeAddFill, model.CommitTypeRemoveFill, model.CommitTypeToggleNote:
 		numbers, err := parseInts(parts[1:])
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse numbers from commit message: %w", err)

@@ -48,7 +48,7 @@ export const BranchList = ({
               <SudokuBoard
                 board={branch.commit.blob.board}
                 scale={0.6}
-                readOnly={true}
+                inputMode={"readonly"}
               />
             </Box>
           </GridListTile>

@@ -75,8 +75,8 @@ export enum CommitType {
   Initial = 'INITIAL',
   AddFill = 'ADD_FILL',
   RemoveFill = 'REMOVE_FILL',
-  AddNote = 'ADD_NOTE',
-  RemoveNote = 'REMOVE_NOTE'
+  ToggleNote = 'TOGGLE_NOTE',
+  Merge = 'MERGE'
 }
 
 export type MergeBranchInput = {
