@@ -28,6 +28,11 @@ type MergeBranchInput struct {
 	AuthorID       string `json:"authorId"`
 }
 
+type Player struct {
+	ID          string `json:"id"`
+	DisplayName string `json:"displayName"`
+}
+
 type CommitType string
 
 const (

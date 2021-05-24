@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/nhan-ng/sudoku/internal/cmd/server/middleware"
+
 	"github.com/99designs/gqlgen/graphql/handler/extension"
 
 	"github.com/99designs/gqlgen/graphql/handler/transport"
@@ -59,7 +61,7 @@ func Serve(useFilesytem bool) error {
 	h.Use(extension.Introspection{})
 
 	http.Handle("/", playground.Handler("Sudoku", "/graphql"))
-	http.Handle("/graphql", cors.AllowAll().Handler(h))
+	http.Handle("/graphql", cors.AllowAll().Handler(middleware.IPMiddleware()(h)))
 
 	zap.L().Info("Serving at localhost:9999")
 	return http.ListenAndServe(":9999", nil)

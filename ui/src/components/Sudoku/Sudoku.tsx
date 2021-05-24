@@ -1,20 +1,13 @@
-import { History, InputMode, SudokuBoard } from ".";
-import { BranchContextProvider } from "contexts/BranchContextProvider";
+import { History, SudokuBoard } from ".";
+import { BranchContextProvider } from "contexts";
 import {
   OnCommitAddedDocument,
   OnCommitAddedSubscription,
   OnCommitAddedSubscriptionVariables,
   useGetFullBranchQuery,
 } from "__generated__/types";
-import React, { useEffect, useState } from "react";
-import {
-  Box,
-  Button,
-  Grid,
-  LinearProgress,
-  Typography,
-} from "@material-ui/core";
-import { AppLoading } from "components/AppLoading";
+import { useEffect, useState } from "react";
+import { Grid, LinearProgress, Typography } from "@material-ui/core";
 import { Fab } from "@material-ui/core";
 import EditIcon from "@material-ui/icons/Edit";
 import NoteIcon from "@material-ui/icons/Note";

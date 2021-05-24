@@ -82,13 +82,20 @@ type ComplexityRoot struct {
 	Mutation struct {
 		AddBranch   func(childComplexity int, input model.AddBranchInput) int
 		AddCommit   func(childComplexity int, input model.AddCommitInput) int
+		Join        func(childComplexity int) int
 		MergeBranch func(childComplexity int, input model.MergeBranchInput) int
+	}
+
+	Player struct {
+		DisplayName func(childComplexity int) int
+		ID          func(childComplexity int) int
 	}
 
 	Query struct {
 		Branch   func(childComplexity int, id string) int
 		Branches func(childComplexity int) int
 		Commit   func(childComplexity int, id string) int
+		Players  func(childComplexity int) int
 		Sudoku   func(childComplexity int) int
 	}
 
@@ -115,12 +122,14 @@ type MutationResolver interface {
 	AddCommit(ctx context.Context, input model.AddCommitInput) (*model.Commit, error)
 	AddBranch(ctx context.Context, input model.AddBranchInput) (*model.Branch, error)
 	MergeBranch(ctx context.Context, input model.MergeBranchInput) (*model.Branch, error)
+	Join(ctx context.Context) (*model.Player, error)
 }
 type QueryResolver interface {
 	Sudoku(ctx context.Context) (*model.Sudoku, error)
 	Branch(ctx context.Context, id string) (*model.Branch, error)
 	Branches(ctx context.Context) ([]*model.Branch, error)
 	Commit(ctx context.Context, id string) (*model.Commit, error)
+	Players(ctx context.Context) ([]*model.Player, error)
 }
 type SubscriptionResolver interface {
 	CommitAdded(ctx context.Context, branchID string) (<-chan *model.Commit, error)
@@ -294,6 +303,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.AddCommit(childComplexity, args["input"].(model.AddCommitInput)), true
 
+	case "Mutation.join":
+		if e.complexity.Mutation.Join == nil {
+			break
+		}
+
+		return e.complexity.Mutation.Join(childComplexity), true
+
 	case "Mutation.mergeBranch":
 		if e.complexity.Mutation.MergeBranch == nil {
 			break
@@ -305,6 +321,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.MergeBranch(childComplexity, args["input"].(model.MergeBranchInput)), true
+
+	case "Player.displayName":
+		if e.complexity.Player.DisplayName == nil {
+			break
+		}
+
+		return e.complexity.Player.DisplayName(childComplexity), true
+
+	case "Player.id":
+		if e.complexity.Player.ID == nil {
+			break
+		}
+
+		return e.complexity.Player.ID(childComplexity), true
 
 	case "Query.branch":
 		if e.complexity.Query.Branch == nil {
@@ -336,6 +366,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.Commit(childComplexity, args["id"].(string)), true
+
+	case "Query.players":
+		if e.complexity.Query.Players == nil {
+			break
+		}
+
+		return e.complexity.Query.Players(childComplexity), true
 
 	case "Query.sudoku":
 		if e.complexity.Query.Sudoku == nil {
@@ -463,12 +500,14 @@ var sources = []*ast.Source{
   branch(id: ID!): Branch!
   branches: [Branch!]!
   commit(id: ID!): Commit!
+  players: [Player!]!
 }
 
 type Mutation {
   addCommit(input: AddCommitInput!): Commit!
   addBranch(input: AddBranchInput!): Branch!
   mergeBranch(input: MergeBranchInput!): Branch!
+  join: Player!
 }
 
 input MergeBranchInput {
@@ -482,10 +521,6 @@ type Subscription {
 }
 
 input AddCommitInput {
-#  authorId: ID!
-#  authorTimestamp: Time!
-#  committerId: ID!
-#  committerTimestamp: Time!
   branchId: ID!
 
   type: CommitType!
@@ -504,8 +539,6 @@ type Commit {
   id: ID!
   authorId: ID!
   authorTimestamp: Time!
-#  committerId: ID!
-#  committerTimestamp: Time!
   parentIds: [ID!]!
   parents: [Commit!]!
 
@@ -547,6 +580,11 @@ type Sudoku {
   branchId: ID!
   branch: Branch!
   board: [[Int!]!]!
+}
+
+type Player {
+  id: ID!
+  displayName: String!
 }
 
 scalar Time`, BuiltIn: false},
@@ -1466,6 +1504,111 @@ func (ec *executionContext) _Mutation_mergeBranch(ctx context.Context, field gra
 	return ec.marshalNBranch2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐBranch(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Mutation_join(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().Join(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Player)
+	fc.Result = res
+	return ec.marshalNPlayer2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐPlayer(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Player_id(ctx context.Context, field graphql.CollectedField, obj *model.Player) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Player",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Player_displayName(ctx context.Context, field graphql.CollectedField, obj *model.Player) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Player",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.DisplayName, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query_sudoku(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -1618,6 +1761,41 @@ func (ec *executionContext) _Query_commit(ctx context.Context, field graphql.Col
 	res := resTmp.(*model.Commit)
 	fc.Result = res
 	return ec.marshalNCommit2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCommit(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_players(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Players(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Player)
+	fc.Result = res
+	return ec.marshalNPlayer2ᚕᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐPlayerᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3311,6 +3489,43 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "join":
+			out.Values[i] = ec._Mutation_join(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var playerImplementors = []string{"Player"}
+
+func (ec *executionContext) _Player(ctx context.Context, sel ast.SelectionSet, obj *model.Player) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, playerImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Player")
+		case "id":
+			out.Values[i] = ec._Player_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "displayName":
+			out.Values[i] = ec._Player_displayName(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3388,6 +3603,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_commit(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "players":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_players(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -4071,6 +4300,57 @@ func (ec *executionContext) marshalNInt2ᚕᚕintᚄ(ctx context.Context, sel as
 func (ec *executionContext) unmarshalNMergeBranchInput2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐMergeBranchInput(ctx context.Context, v interface{}) (model.MergeBranchInput, error) {
 	res, err := ec.unmarshalInputMergeBranchInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNPlayer2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐPlayer(ctx context.Context, sel ast.SelectionSet, v model.Player) graphql.Marshaler {
+	return ec._Player(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNPlayer2ᚕᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐPlayerᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Player) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNPlayer2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐPlayer(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
+func (ec *executionContext) marshalNPlayer2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐPlayer(ctx context.Context, sel ast.SelectionSet, v *model.Player) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Player(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {

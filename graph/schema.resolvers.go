@@ -15,6 +15,8 @@ import (
 	"github.com/nhan-ng/sudoku/graph/generated"
 	"github.com/nhan-ng/sudoku/graph/gqlerrors"
 	"github.com/nhan-ng/sudoku/graph/model"
+	"github.com/nhan-ng/sudoku/internal/cmd/server/middleware"
+	"github.com/nhan-ng/sudoku/internal/namesgenerator"
 	"go.uber.org/zap"
 )
 
@@ -115,6 +117,12 @@ func (r *mutationResolver) AddCommit(ctx context.Context, input model.AddCommitI
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
+	// Verify the author
+	player, err := r.getPlayer(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get player: %w", err)
+	}
+
 	// Verify the branch
 	ref, err := r.repo.Reference(plumbing.NewBranchReferenceName(input.BranchID), false)
 	if err != nil {
@@ -157,7 +165,7 @@ func (r *mutationResolver) AddCommit(ctx context.Context, input model.AddCommitI
 	commitMessage := fmt.Sprintf("%s %d %d %d", input.Type, input.Row, input.Col, input.Val)
 
 	// Commit the change
-	c, err := r.CommitBoard(wt, board, commitMessage)
+	c, err := r.CommitBoard(wt, board, commitMessage, player)
 	if err != nil {
 		return nil, fmt.Errorf("failed to commit the board change: %w", err)
 	}
@@ -216,6 +224,12 @@ func (r *mutationResolver) AddBranch(ctx context.Context, input model.AddBranchI
 func (r *mutationResolver) MergeBranch(ctx context.Context, input model.MergeBranchInput) (*model.Branch, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+
+	// Get player
+	player, err := r.getPlayer(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get player: %w", err)
+	}
 
 	// Get source
 	sourceRef, err := r.repo.Reference(plumbing.NewBranchReferenceName(input.SourceBranchID), false)
@@ -339,13 +353,41 @@ func (r *mutationResolver) MergeBranch(ctx context.Context, input model.MergeBra
 	if err != nil {
 		return nil, fmt.Errorf("failed to checkout the source commit: %w", err)
 	}
-	_, err = r.CommitBoard(wt, board, fmt.Sprintf("MERGE %s %s", input.SourceBranchID, input.TargetBranchID))
+	_, err = r.CommitBoard(wt, board, fmt.Sprintf("MERGE %s %s", input.SourceBranchID, input.TargetBranchID), player)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create a merge commit: %w", err)
 	}
 
 	// Not support other form of merging yet :(
 	return ConvertBranch(sourceRef), nil
+}
+
+func (r *mutationResolver) Join(ctx context.Context) (*model.Player, error) {
+	// Get the IP address from the request
+	ip, err := middleware.ForContext(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get the user's IP")
+	}
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	// Return the player if already used
+	player, exist := r.players[ip]
+	if exist {
+		return player, nil
+	}
+
+	// Otherwise add a new player
+	newPlayerName := namesgenerator.GetUniqueRandomName(r.playerNames)
+	newPlayer := &model.Player{
+		ID:          uuid.NewString(),
+		DisplayName: newPlayerName,
+	}
+	r.playerNames[newPlayerName] = struct{}{}
+	r.players[ip] = newPlayer
+
+	return newPlayer, nil
 }
 
 func (r *queryResolver) Sudoku(ctx context.Context) (*model.Sudoku, error) {
@@ -402,6 +444,10 @@ func (r *queryResolver) Commit(ctx context.Context, id string) (*model.Commit, e
 	}
 
 	return result, nil
+}
+
+func (r *queryResolver) Players(ctx context.Context) ([]*model.Player, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 func (r *subscriptionResolver) CommitAdded(ctx context.Context, branchID string) (<-chan *model.Commit, error) {

@@ -3,12 +3,14 @@ type Query {
   branch(id: ID!): Branch!
   branches: [Branch!]!
   commit(id: ID!): Commit!
+  players: [Player!]!
 }
 
 type Mutation {
   addCommit(input: AddCommitInput!): Commit!
   addBranch(input: AddBranchInput!): Branch!
   mergeBranch(input: MergeBranchInput!): Branch!
+  join: Player!
 }
 
 input MergeBranchInput {
@@ -22,10 +24,6 @@ type Subscription {
 }
 
 input AddCommitInput {
-#  authorId: ID!
-#  authorTimestamp: Time!
-#  committerId: ID!
-#  committerTimestamp: Time!
   branchId: ID!
 
   type: CommitType!
@@ -44,8 +42,6 @@ type Commit {
   id: ID!
   authorId: ID!
   authorTimestamp: Time!
-#  committerId: ID!
-#  committerTimestamp: Time!
   parentIds: [ID!]!
   parents: [Commit!]!
 
@@ -87,6 +83,11 @@ type Sudoku {
   branchId: ID!
   branch: Branch!
   board: [[Int!]!]!
+}
+
+type Player {
+  id: ID!
+  displayName: String!
 }
 
 scalar Time

@@ -25,13 +25,15 @@ export const MergeBranchControl = ({
   branchIds,
   onSubmit,
 }: MergeBranchControlProps) => {
-  const [selection, setSelection] = useState("");
+  const [selection, setSelection] = useState<string | undefined>(undefined);
 
   const handleSubmit = async (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     try {
-      await onSubmit(selection);
-      setSelection("");
+      if (selection) {
+        await onSubmit(selection);
+      }
+      setSelection(undefined);
     } catch (e) {
       console.log(e);
     }

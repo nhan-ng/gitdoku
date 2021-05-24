@@ -90,6 +90,7 @@ export type Mutation = {
   addCommit: Commit;
   addBranch: Branch;
   mergeBranch: Branch;
+  join: Player;
 };
 
 
@@ -107,12 +108,19 @@ export type MutationMergeBranchArgs = {
   input: MergeBranchInput;
 };
 
+export type Player = {
+  __typename: 'Player';
+  id: Scalars['ID'];
+  displayName: Scalars['String'];
+};
+
 export type Query = {
   __typename: 'Query';
   sudoku: Sudoku;
   branch: Branch;
   branches: Array<Branch>;
   commit: Commit;
+  players: Array<Player>;
 };
 
 
@@ -213,6 +221,17 @@ export type FullBranchFragment = (
     & CommitFragment
   )> }
   & LiteBranchFragment
+);
+
+export type JoinMutationVariables = Exact<{ [key: string]: never; }>;
+
+
+export type JoinMutation = (
+  { __typename: 'Mutation' }
+  & { join: (
+    { __typename: 'Player' }
+    & Pick<Player, 'id' | 'displayName'>
+  ) }
 );
 
 export type AddCommitMutationVariables = Exact<{
@@ -465,6 +484,39 @@ export function useGetBranchesLazyQuery(baseOptions?: Apollo.LazyQueryHookOption
 export type GetBranchesQueryHookResult = ReturnType<typeof useGetBranchesQuery>;
 export type GetBranchesLazyQueryHookResult = ReturnType<typeof useGetBranchesLazyQuery>;
 export type GetBranchesQueryResult = Apollo.QueryResult<GetBranchesQuery, GetBranchesQueryVariables>;
+export const JoinDocument = gql`
+    mutation Join {
+  join {
+    id
+    displayName
+  }
+}
+    `;
+export type JoinMutationFn = Apollo.MutationFunction<JoinMutation, JoinMutationVariables>;
+
+/**
+ * __useJoinMutation__
+ *
+ * To run a mutation, you first call `useJoinMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useJoinMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [joinMutation, { data, loading, error }] = useJoinMutation({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useJoinMutation(baseOptions?: Apollo.MutationHookOptions<JoinMutation, JoinMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<JoinMutation, JoinMutationVariables>(JoinDocument, options);
+      }
+export type JoinMutationHookResult = ReturnType<typeof useJoinMutation>;
+export type JoinMutationResult = Apollo.MutationResult<JoinMutation>;
+export type JoinMutationOptions = Apollo.BaseMutationOptions<JoinMutation, JoinMutationVariables>;
 export const AddCommitDocument = gql`
     mutation AddCommit($input: AddCommitInput!) {
   addCommit(input: $input) {

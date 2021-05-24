@@ -2,6 +2,7 @@
 package graph
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -11,6 +12,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/nhan-ng/sudoku/internal/cmd/server/middleware"
 
 	"github.com/go-git/go-billy/v5/memfs"
 	"github.com/go-git/go-git/v5/storage/memory"
@@ -56,6 +59,9 @@ type ObserverCleanUpFunc func()
 
 type Resolver struct {
 	sudoku *model.Sudoku
+
+	players     map[string]*model.Player
+	playerNames map[string]struct{}
 
 	branchObservers map[string]*BranchObserver
 
@@ -183,6 +189,8 @@ func newGame(useFilesystem bool) (*Resolver, error) {
 
 	return &Resolver{
 		sudoku:          sudoku,
+		players:         make(map[string]*model.Player),
+		playerNames:     make(map[string]struct{}),
 		repo:            repo,
 		fs:              fs,
 		branchObservers: branchObservers,
@@ -260,7 +268,7 @@ func (r *Resolver) ReadBoard() (engine.Board, error) {
 	return board, nil
 }
 
-func (r *Resolver) CommitBoard(worktree *git.Worktree, board engine.Board, message string) (*object.Commit, error) {
+func (r *Resolver) CommitBoard(worktree *git.Worktree, board engine.Board, message string, player *model.Player) (*object.Commit, error) {
 	// Add board to index
 	boardContent, err := board.Marshal()
 	if err != nil {
@@ -276,8 +284,8 @@ func (r *Resolver) CommitBoard(worktree *git.Worktree, board engine.Board, messa
 
 	// Add board to index
 	sig := &object.Signature{
-		Name:  "Game Master",
-		Email: "gm@gitdoku.io",
+		Name:  player.DisplayName,
+		Email: player.ID,
 		When:  time.Now(),
 	}
 	commitID, err := worktree.Commit(message, &git.CommitOptions{
@@ -302,6 +310,20 @@ func (r *Resolver) writeGameFile(data []byte) error {
 		return fmt.Errorf("failed to write data to file: %w", err)
 	}
 	return nil
+}
+
+func (r *Resolver) getPlayer(ctx context.Context) (*model.Player, error) {
+	ip, err := middleware.ForContext(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get the IP from the context: %w", err)
+	}
+
+	player, ok := r.players[ip]
+	if !ok {
+		return nil, fmt.Errorf("player did not exist for IP: %s", ip)
+	}
+
+	return player, nil
 }
 
 func ApplyCommit(board engine.Board, commit *object.Commit) (engine.Board, error) {

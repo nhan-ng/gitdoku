@@ -1,7 +1,7 @@
 import { Box, Button, Grid, LinearProgress } from "@material-ui/core";
 import { Sudoku } from "components/Sudoku";
 import React, { useState } from "react";
-import { BranchList } from ".";
+import { BranchList, PlayerList } from ".";
 import {
   GetBranchesDocument,
   GetFullBranchDocument,
@@ -12,7 +12,7 @@ import {
 import { NewBranchControl } from ".";
 import { MergeBranchControl } from "./MergeBranchControl";
 
-export const Game = () => {
+export const Game: React.FC = () => {
   const [branchId, setBranchId] = useState("master");
   const { data, loading, error } = useGetBranchesQuery({
     pollInterval: 5000,
@@ -50,6 +50,7 @@ export const Game = () => {
   return (
     <Grid container>
       <Grid item md={12}>
+        <PlayerList />
         <Sudoku branchId={branchId} />
       </Grid>
       <Box my={6}>

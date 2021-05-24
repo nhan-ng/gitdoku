@@ -39,6 +39,13 @@ fragment FullBranch on Branch {
   }
 }
 
+mutation Join {
+  join {
+    id
+    displayName
+  }
+}
+
 mutation AddCommit($input: AddCommitInput!) {
   addCommit(input: $input) {
     ...Commit

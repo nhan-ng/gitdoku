@@ -5,7 +5,7 @@ import {
 } from "../../__generated__/types";
 import styled from "styled-components";
 import React, { useState } from "react";
-import { useBranchContext } from "../../hooks";
+import { useBranchContext } from "../../contexts/BranchContext";
 import {
   Table,
   TableBody,
@@ -18,6 +18,7 @@ import {
   LinearProgress,
 } from "@material-ui/core";
 import { getNodeMajorVersion } from "typescript";
+import { useLobbyContext } from "contexts";
 
 // const backgroundColor = "#FFF";
 // const blue = "hsl(210, 88%, 56%)";
