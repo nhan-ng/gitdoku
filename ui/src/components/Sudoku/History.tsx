@@ -7,11 +7,7 @@ export type HistoryProps = {
   commits: CommitFragment[];
 };
 
-type HistoryRowProps = {
-  commit: CommitFragment;
-};
-
-export const History = ({ commits }: HistoryProps) => {
+export const History: React.FC<HistoryProps> = ({ commits }) => {
   const HistoryRow = ({ index, style }: ListChildComponentProps) => {
     const commit = commits[index];
     switch (commit.type) {

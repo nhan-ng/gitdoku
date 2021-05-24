@@ -1,4 +1,4 @@
-import { createContext, useContext } from "react";
+import React, { createContext, useContext } from "react";
 
 export const BranchContext = createContext<string>("");
 
@@ -10,7 +10,7 @@ export const BranchContextProvider: React.FC<BranchContextProviderProps> = ({
   id,
   children,
 }) => {
-  return <BranchContext.Provider value={id} children={children} />;
+  return <BranchContext.Provider value={id}>{children}</BranchContext.Provider>;
 };
 
-export const useBranchContext = () => useContext(BranchContext);
+export const useBranchContext = (): string => useContext(BranchContext);

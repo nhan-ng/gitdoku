@@ -4,13 +4,9 @@ import {
   GridListTile,
   GridListTileBar,
   IconButton,
-  LinearProgress,
 } from "@material-ui/core";
 import React from "react";
-import {
-  LiteBranchFragment,
-  useGetBranchesQuery,
-} from "../../__generated__/types";
+import { LiteBranchFragment } from "../../__generated__/types";
 import { SudokuBoard } from "../Sudoku";
 import SwapVertIcon from "@material-ui/icons/SwapVert";
 
@@ -20,11 +16,11 @@ export type BranchListProps = {
   onBranchClicked: (branchId: string) => void;
 };
 
-export const BranchList = ({
+export const BranchList: React.FC<BranchListProps> = ({
   currentBranchId,
   branches,
   onBranchClicked,
-}: BranchListProps) => {
+}) => {
   return (
     <GridList cellHeight="auto" cols={3} style={{ flexWrap: "nowrap" }}>
       {branches.map((branch) => {

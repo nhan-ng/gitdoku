@@ -14,11 +14,8 @@ import {
   TableContainer,
   Paper,
   Box,
-  TableCellProps,
   LinearProgress,
 } from "@material-ui/core";
-import { getNodeMajorVersion } from "typescript";
-import { useLobbyContext } from "contexts";
 
 // const backgroundColor = "#FFF";
 // const blue = "hsl(210, 88%, 56%)";
@@ -80,7 +77,11 @@ export type SudokuBoardProps = {
 
 export type InputMode = "fill" | "note" | "readonly";
 
-export function SudokuBoard({ board, scale, inputMode }: SudokuBoardProps) {
+export const SudokuBoard: React.FC<SudokuBoardProps> = ({
+  board,
+  scale,
+  inputMode,
+}) => {
   const branchId = useBranchContext();
   const [selectedCell, setSelectedCell] = useState<SelectedCell>();
   const [addCommit, { loading }] = useAddCommitMutation();
@@ -221,4 +222,4 @@ export function SudokuBoard({ board, scale, inputMode }: SudokuBoardProps) {
       </Box>
     </SudokuTableContainer>
   );
-}
+};

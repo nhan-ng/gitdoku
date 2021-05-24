@@ -1,4 +1,4 @@
 import { LinearProgress } from "@material-ui/core";
 import React from "react";
 
-export const AppLoading = () => <LinearProgress />;
+export const AppLoading: React.FC = () => <LinearProgress />;

@@ -1,14 +1,6 @@
 import React, { useState } from "react";
 import { Autocomplete } from "@material-ui/lab";
-import {
-  Button,
-  ButtonGroup,
-  Grid,
-  IconButton,
-  InputAdornment,
-  Paper,
-  TextField,
-} from "@material-ui/core";
+import { Grid, IconButton, TextField } from "@material-ui/core";
 import CallMergeIcon from "@material-ui/icons/CallMerge";
 import styled from "styled-components";
 
@@ -21,10 +13,10 @@ export type MergeBranchControlProps = {
   branchIds: string[];
 };
 
-export const MergeBranchControl = ({
+export const MergeBranchControl: React.FC<MergeBranchControlProps> = ({
   branchIds,
   onSubmit,
-}: MergeBranchControlProps) => {
+}) => {
   const [selection, setSelection] = useState<string | undefined>(undefined);
 
   const handleSubmit = async (event: React.MouseEvent<HTMLButtonElement>) => {

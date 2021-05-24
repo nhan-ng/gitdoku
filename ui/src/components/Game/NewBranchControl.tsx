@@ -1,16 +1,5 @@
-import { Grid, OutlinedInput } from "@material-ui/core";
-import {
-  Button,
-  ButtonGroup,
-  FormControl,
-  IconButton,
-  Input,
-  InputAdornment,
-  InputBase,
-  InputLabel,
-  Paper,
-  TextField,
-} from "@material-ui/core";
+import { Grid } from "@material-ui/core";
+import { IconButton, TextField } from "@material-ui/core";
 import CallSplitIcon from "@material-ui/icons/CallSplit";
 import React, { useState } from "react";
 import styled from "styled-components";
@@ -23,7 +12,9 @@ export type NewBranchControlProps = {
   onSubmit: (branchId: string) => Promise<void>;
 };
 
-export const NewBranchControl = ({ onSubmit }: NewBranchControlProps) => {
+export const NewBranchControl: React.FC<NewBranchControlProps> = ({
+  onSubmit,
+}) => {
   const [branchId, setBranchId] = useState("");
 
   const handleChange = (

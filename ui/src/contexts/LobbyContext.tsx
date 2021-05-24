@@ -1,5 +1,5 @@
 import { LinearProgress } from "@material-ui/core";
-import { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect } from "react";
 import { Player, useJoinMutation } from "__generated__/types";
 
 export type LobbyState = {
@@ -37,7 +37,11 @@ export const LobbyContextProvider: React.FC<LobbyContextProviderProps> = ({
 
   const player = data.join;
 
-  return <LobbyContext.Provider value={{ id, player }} children={children} />;
+  return (
+    <LobbyContext.Provider value={{ id, player }}>
+      {children}
+    </LobbyContext.Provider>
+  );
 };
 
-export const useLobbyContext = () => useContext(LobbyContext);
+export const useLobbyContext = (): LobbyState => useContext(LobbyContext);

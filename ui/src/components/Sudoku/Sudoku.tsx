@@ -6,7 +6,7 @@ import {
   OnCommitAddedSubscriptionVariables,
   useGetFullBranchQuery,
 } from "__generated__/types";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Grid, LinearProgress, Typography } from "@material-ui/core";
 import { Fab } from "@material-ui/core";
 import EditIcon from "@material-ui/icons/Edit";
@@ -16,7 +16,7 @@ export type SudokuProps = {
   branchId: string;
 };
 
-export function Sudoku({ branchId }: SudokuProps) {
+export const Sudoku: React.FC<SudokuProps> = ({ branchId }: SudokuProps) => {
   const [isFillInputMode, setIsFillInputMode] = useState(true); // If false -> Note input mode
   const { data, error, loading, subscribeToMore } = useGetFullBranchQuery({
     variables: {
@@ -100,4 +100,4 @@ export function Sudoku({ branchId }: SudokuProps) {
       </Grid>
     </BranchContextProvider>
   );
-}
+};
