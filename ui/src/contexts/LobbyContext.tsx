@@ -29,13 +29,14 @@ export const LobbyContextProvider: React.FC<LobbyContextProviderProps> = ({
 
   useEffect(() => {
     join();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (loading || error || !data) {
     return <LinearProgress />;
   }
 
-  const player = data.join;
+  const player = data.join.player;
 
   return (
     <LobbyContext.Provider value={{ id, player }}>

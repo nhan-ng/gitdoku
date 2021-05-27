@@ -1,7 +1,7 @@
 import { Game } from "components/Game";
 import { LobbyContextProvider } from "contexts";
 import React from "react";
-import { Route, Switch, useParams, useRouteMatch } from "react-router-dom";
+import { useParams } from "react-router-dom";
 
 type LobbyRouteParams = {
   id: string;
@@ -14,7 +14,7 @@ export const Lobby: React.FC = () => {
   // Render lobby
   return (
     <LobbyContextProvider id={id}>
-      <Game />;
+      <Game />
     </LobbyContextProvider>
   );
 };

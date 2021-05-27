@@ -14,6 +14,10 @@ type AddBranchInput struct {
 	BranchID *string `json:"branchId"`
 }
 
+type AddBranchPayload struct {
+	Branch *Branch `json:"branch"`
+}
+
 type AddCommitInput struct {
 	BranchID string     `json:"branchId"`
 	Type     CommitType `json:"type"`
@@ -22,10 +26,22 @@ type AddCommitInput struct {
 	Val      int        `json:"val"`
 }
 
+type AddCommitPayload struct {
+	Commit *Commit `json:"commit"`
+}
+
+type JoinPayload struct {
+	Player *Player `json:"player"`
+}
+
 type MergeBranchInput struct {
 	SourceBranchID string `json:"sourceBranchId"`
 	TargetBranchID string `json:"targetBranchId"`
 	AuthorID       string `json:"authorId"`
+}
+
+type MergeBranchPayload struct {
+	SourceBranch *Branch `json:"sourceBranch"`
 }
 
 type Player struct {

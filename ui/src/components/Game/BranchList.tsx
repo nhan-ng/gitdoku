@@ -9,12 +9,17 @@ import React from "react";
 import { LiteBranchFragment } from "../../__generated__/types";
 import { SudokuBoard } from "../Sudoku";
 import SwapVertIcon from "@material-ui/icons/SwapVert";
+import styled from "styled-components";
 
-export type BranchListProps = {
+type BranchListProps = {
   currentBranchId: string;
   branches: Pick<LiteBranchFragment, "id" | "commit">[];
   onBranchClicked: (branchId: string) => void;
 };
+
+const StyledGridList = styled(GridList)`
+  flex-wrap: nowrap;
+`;
 
 export const BranchList: React.FC<BranchListProps> = ({
   currentBranchId,
@@ -22,7 +27,7 @@ export const BranchList: React.FC<BranchListProps> = ({
   onBranchClicked,
 }) => {
   return (
-    <GridList cellHeight="auto" cols={3} style={{ flexWrap: "nowrap" }}>
+    <StyledGridList cellHeight="auto" cols={3}>
       {branches.map((branch) => {
         const isCurrentBranch = branch.id === currentBranchId;
 
@@ -40,16 +45,16 @@ export const BranchList: React.FC<BranchListProps> = ({
                 )
               }
             />
-            <Box ml={-6}>
+            <Box ml={-12} mt={-6}>
               <SudokuBoard
                 board={branch.commit.blob.board}
-                scale={0.6}
+                scale={0.5}
                 inputMode={"readonly"}
               />
             </Box>
           </GridListTile>
         );
       })}
-    </GridList>
+    </StyledGridList>
   );
 };

@@ -101,7 +101,7 @@ func (r *commitResolver) Blob(ctx context.Context, obj *model.Commit) (*model.Bl
 	return ConvertBlob(board), nil
 }
 
-func (r *mutationResolver) AddCommit(ctx context.Context, input model.AddCommitInput) (*model.Commit, error) {
+func (r *mutationResolver) AddCommit(ctx context.Context, input model.AddCommitInput) (*model.AddCommitPayload, error) {
 	// Validate
 	if input.Row < 0 || input.Row >= 9 {
 		return nil, gqlerrors.ErrInvalidInputCoordinate()
@@ -177,10 +177,12 @@ func (r *mutationResolver) AddCommit(ctx context.Context, input model.AddCommitI
 	// Broadcast the change
 	r.NotifyObservers(input.BranchID, commit)
 
-	return commit, nil
+	return &model.AddCommitPayload{
+		Commit: commit,
+	}, nil
 }
 
-func (r *mutationResolver) AddBranch(ctx context.Context, input model.AddBranchInput) (*model.Branch, error) {
+func (r *mutationResolver) AddBranch(ctx context.Context, input model.AddBranchInput) (*model.AddBranchPayload, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -218,10 +220,12 @@ func (r *mutationResolver) AddBranch(ctx context.Context, input model.AddBranchI
 		return nil, fmt.Errorf("failed to create a new branch: %w", err)
 	}
 
-	return ConvertBranch(newRef), nil
+	return &model.AddBranchPayload{
+		Branch: ConvertBranch(newRef),
+	}, nil
 }
 
-func (r *mutationResolver) MergeBranch(ctx context.Context, input model.MergeBranchInput) (*model.Branch, error) {
+func (r *mutationResolver) MergeBranch(ctx context.Context, input model.MergeBranchInput) (*model.MergeBranchPayload, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -272,7 +276,9 @@ func (r *mutationResolver) MergeBranch(ctx context.Context, input model.MergeBra
 		newRef := plumbing.NewHashReference(sourceRef.Name(), targetCommit.Hash)
 		r.repo.Storer.SetReference(newRef)
 
-		return ConvertBranch(newRef), nil
+		return &model.MergeBranchPayload{
+			SourceBranch: ConvertBranch(newRef),
+		}, nil
 	}
 
 	baseCommitReached := fmt.Errorf("base commit reached")
@@ -359,10 +365,10 @@ func (r *mutationResolver) MergeBranch(ctx context.Context, input model.MergeBra
 	}
 
 	// Not support other form of merging yet :(
-	return ConvertBranch(sourceRef), nil
+	return &model.MergeBranchPayload{SourceBranch: ConvertBranch(sourceRef)}, nil
 }
 
-func (r *mutationResolver) Join(ctx context.Context) (*model.Player, error) {
+func (r *mutationResolver) Join(ctx context.Context) (*model.JoinPayload, error) {
 	// Get the IP address from the request
 	ip, err := middleware.ForContext(ctx)
 	if err != nil {
@@ -375,7 +381,7 @@ func (r *mutationResolver) Join(ctx context.Context) (*model.Player, error) {
 	// Return the player if already used
 	player, exist := r.players[ip]
 	if exist {
-		return player, nil
+		return &model.JoinPayload{Player: player}, nil
 	}
 
 	// Otherwise add a new player
@@ -387,7 +393,7 @@ func (r *mutationResolver) Join(ctx context.Context) (*model.Player, error) {
 	r.playerNames[newPlayerName] = struct{}{}
 	r.players[ip] = newPlayer
 
-	return newPlayer, nil
+	return &model.JoinPayload{Player: newPlayer}, nil
 }
 
 func (r *queryResolver) Sudoku(ctx context.Context) (*model.Sudoku, error) {

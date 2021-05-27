@@ -11,9 +11,27 @@ import { Grid, LinearProgress, Typography } from "@material-ui/core";
 import { Fab } from "@material-ui/core";
 import EditIcon from "@material-ui/icons/Edit";
 import NoteIcon from "@material-ui/icons/Note";
+import styled from "styled-components";
 
 export type SudokuProps = {
   branchId: string;
+};
+
+const FixedHeightContainer = styled(Grid)`
+  height: 500px;
+`;
+
+const Layout: React.FC = ({ children }) => {
+  return (
+    <FixedHeightContainer
+      container
+      direction="row"
+      justify="center"
+      alignItems="flex-start"
+    >
+      {children}
+    </FixedHeightContainer>
+  );
 };
 
 export const Sudoku: React.FC<SudokuProps> = ({ branchId }: SudokuProps) => {
@@ -56,7 +74,13 @@ export const Sudoku: React.FC<SudokuProps> = ({ branchId }: SudokuProps) => {
   }, [subscribeToMore, branchId]);
 
   if (loading) {
-    return <LinearProgress />;
+    return (
+      <Layout>
+        <Grid item sm={12}>
+          <LinearProgress />
+        </Grid>
+      </Layout>
+    );
   }
 
   if (error || !data) {
@@ -68,7 +92,7 @@ export const Sudoku: React.FC<SudokuProps> = ({ branchId }: SudokuProps) => {
 
   return (
     <BranchContextProvider id={branchId}>
-      <Grid container direction="row" justify="center" alignItems="flex-start">
+      <Layout>
         <Grid item md={8}>
           <Grid
             container
@@ -92,12 +116,13 @@ export const Sudoku: React.FC<SudokuProps> = ({ branchId }: SudokuProps) => {
             board={board}
             scale={1}
             inputMode={isFillInputMode ? "fill" : "note"}
+            toggleInputMode={() => setIsFillInputMode(!isFillInputMode)}
           />
         </Grid>
         <Grid item md={4}>
           <History commits={commits} />
         </Grid>
-      </Grid>
+      </Layout>
     </BranchContextProvider>
   );
 };

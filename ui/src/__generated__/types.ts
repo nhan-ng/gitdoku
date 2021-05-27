@@ -28,12 +28,22 @@ export type AddBranchInput = {
   branchId?: Maybe<Scalars['ID']>;
 };
 
+export type AddBranchPayload = {
+  __typename: 'AddBranchPayload';
+  branch: Branch;
+};
+
 export type AddCommitInput = {
   branchId: Scalars['ID'];
   type: CommitType;
   row: Scalars['Int'];
   col: Scalars['Int'];
   val: Scalars['Int'];
+};
+
+export type AddCommitPayload = {
+  __typename: 'AddCommitPayload';
+  commit: Commit;
 };
 
 export type Blob = {
@@ -79,18 +89,28 @@ export enum CommitType {
   Merge = 'MERGE'
 }
 
+export type JoinPayload = {
+  __typename: 'JoinPayload';
+  player: Player;
+};
+
 export type MergeBranchInput = {
   sourceBranchId: Scalars['ID'];
   targetBranchId: Scalars['ID'];
   authorId: Scalars['ID'];
 };
 
+export type MergeBranchPayload = {
+  __typename: 'MergeBranchPayload';
+  sourceBranch: Branch;
+};
+
 export type Mutation = {
   __typename: 'Mutation';
-  addCommit: Commit;
-  addBranch: Branch;
-  mergeBranch: Branch;
-  join: Player;
+  addCommit: AddCommitPayload;
+  addBranch: AddBranchPayload;
+  mergeBranch: MergeBranchPayload;
+  join: JoinPayload;
 };
 
 
@@ -229,8 +249,11 @@ export type JoinMutationVariables = Exact<{ [key: string]: never; }>;
 export type JoinMutation = (
   { __typename: 'Mutation' }
   & { join: (
-    { __typename: 'Player' }
-    & Pick<Player, 'id' | 'displayName'>
+    { __typename: 'JoinPayload' }
+    & { player: (
+      { __typename: 'Player' }
+      & Pick<Player, 'id' | 'displayName'>
+    ) }
   ) }
 );
 
@@ -242,8 +265,11 @@ export type AddCommitMutationVariables = Exact<{
 export type AddCommitMutation = (
   { __typename: 'Mutation' }
   & { addCommit: (
-    { __typename: 'Commit' }
-    & CommitFragment
+    { __typename: 'AddCommitPayload' }
+    & { commit: (
+      { __typename: 'Commit' }
+      & CommitFragment
+    ) }
   ) }
 );
 
@@ -255,8 +281,11 @@ export type AddBranchMutationVariables = Exact<{
 export type AddBranchMutation = (
   { __typename: 'Mutation' }
   & { addBranch: (
-    { __typename: 'Branch' }
-    & LiteBranchFragment
+    { __typename: 'AddBranchPayload' }
+    & { branch: (
+      { __typename: 'Branch' }
+      & LiteBranchFragment
+    ) }
   ) }
 );
 
@@ -268,8 +297,11 @@ export type MergeBranchMutationVariables = Exact<{
 export type MergeBranchMutation = (
   { __typename: 'Mutation' }
   & { mergeBranch: (
-    { __typename: 'Branch' }
-    & LiteBranchFragment
+    { __typename: 'MergeBranchPayload' }
+    & { sourceBranch: (
+      { __typename: 'Branch' }
+      & LiteBranchFragment
+    ) }
   ) }
 );
 
@@ -487,8 +519,10 @@ export type GetBranchesQueryResult = Apollo.QueryResult<GetBranchesQuery, GetBra
 export const JoinDocument = gql`
     mutation Join {
   join {
-    id
-    displayName
+    player {
+      id
+      displayName
+    }
   }
 }
     `;
@@ -520,7 +554,9 @@ export type JoinMutationOptions = Apollo.BaseMutationOptions<JoinMutation, JoinM
 export const AddCommitDocument = gql`
     mutation AddCommit($input: AddCommitInput!) {
   addCommit(input: $input) {
-    ...Commit
+    commit {
+      ...Commit
+    }
   }
 }
     ${CommitFragmentDoc}`;
@@ -553,7 +589,9 @@ export type AddCommitMutationOptions = Apollo.BaseMutationOptions<AddCommitMutat
 export const AddBranchDocument = gql`
     mutation AddBranch($input: AddBranchInput!) {
   addBranch(input: $input) {
-    ...LiteBranch
+    branch {
+      ...LiteBranch
+    }
   }
 }
     ${LiteBranchFragmentDoc}`;
@@ -586,7 +624,9 @@ export type AddBranchMutationOptions = Apollo.BaseMutationOptions<AddBranchMutat
 export const MergeBranchDocument = gql`
     mutation MergeBranch($input: MergeBranchInput!) {
   mergeBranch(input: $input) {
-    ...LiteBranch
+    sourceBranch {
+      ...LiteBranch
+    }
   }
 }
     ${LiteBranchFragmentDoc}`;

@@ -41,26 +41,34 @@ fragment FullBranch on Branch {
 
 mutation Join {
   join {
-    id
-    displayName
+    player {
+      id
+      displayName
+    }
   }
 }
 
 mutation AddCommit($input: AddCommitInput!) {
   addCommit(input: $input) {
-    ...Commit
+    commit {
+      ...Commit
+    }
   }
 }
 
 mutation AddBranch($input: AddBranchInput!) {
   addBranch(input: $input) {
-    ...LiteBranch
+    branch {
+      ...LiteBranch
+    }
   }
 }
 
 mutation MergeBranch($input: MergeBranchInput!) {
   mergeBranch(input: $input) {
-    ...LiteBranch
+    sourceBranch {
+      ...LiteBranch
+    }
   }
 }
 

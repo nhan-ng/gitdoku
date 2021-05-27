@@ -16,14 +16,11 @@ import {
   Box,
   LinearProgress,
 } from "@material-ui/core";
+import { SudokuCell } from ".";
 
 // const backgroundColor = "#FFF";
 // const blue = "hsl(210, 88%, 56%)";
 const grey = "hsl(213, 30%, 29%)";
-const greyLight = "hsl(213, 30%, 59%)";
-const greyLighter = "hsl(213, 30%, 79%)";
-const orange = "hsl(34, 26%, 89%)";
-const orangeDark = "hsl(34, 76%, 89%)";
 
 type SudokuTableProps = {
   scale: number;
@@ -47,23 +44,6 @@ const SudokuRow = styled(TableRow)`
   }
 `;
 
-type SudokuCellProps = {
-  $immutable: boolean;
-  $isSelected: boolean;
-  $isPeered: boolean;
-};
-const SudokuCell = styled(TableCell)<SudokuCellProps>`
-  border: 1px solid ${greyLighter};
-  cursor: pointer;
-  font-weight: bolder;
-  color: ${({ $immutable }) => ($immutable ? grey : greyLight)};
-  background-color: ${({ $isSelected, $isPeered }) =>
-    $isSelected ? orangeDark : $isPeered ? orange : "transparent"};
-  &:nth-child(3n) {
-    border-right: 2px solid ${grey};
-  }
-`;
-
 type SelectedCell = {
   row: number;
   col: number;
@@ -73,6 +53,7 @@ export type SudokuBoardProps = {
   scale: number;
   board: Cell[][];
   inputMode: InputMode;
+  toggleInputMode?: () => void;
 };
 
 export type InputMode = "fill" | "note" | "readonly";
@@ -81,6 +62,7 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
   board,
   scale,
   inputMode,
+  toggleInputMode,
 }) => {
   const branchId = useBranchContext();
   const [selectedCell, setSelectedCell] = useState<SelectedCell>();
@@ -136,6 +118,12 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
 
       case "ArrowUp":
         moveSelectedCell(selectedCell, -1, 0);
+        return;
+
+      case " ":
+        if (toggleInputMode) {
+          toggleInputMode();
+        }
         return;
     }
 
@@ -203,14 +191,12 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
 
                     return (
                       <SudokuCell
-                        $immutable={cell.immutable}
-                        $isSelected={isSelected}
-                        $isPeered={isPeered}
+                        cell={cell}
+                        isSelected={isSelected}
+                        isPeered={isPeered}
                         key={`${i}${j}`}
                         onClick={() => onCellClicked(i, j)}
-                      >
-                        {cell.val === 0 ? " " : cell.val}
-                      </SudokuCell>
+                      />
                     );
                   })}
                 </SudokuRow>

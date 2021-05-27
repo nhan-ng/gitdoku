@@ -13,7 +13,13 @@ import {
 } from "@apollo/client";
 import { getMainDefinition } from "@apollo/client/utilities";
 import { WebSocketLink } from "@apollo/client/link/ws";
-import { BrowserRouter as Router, Switch, Route, Link } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Switch,
+  Route,
+  Link,
+  Redirect,
+} from "react-router-dom";
 import { Lobby } from "components/Lobby";
 
 const httpLink = new HttpLink({
@@ -46,7 +52,7 @@ const theme = createMuiTheme({});
 
 // Routes
 
-export function App() {
+export const App: React.FC = () => {
   return (
     <>
       <CssBaseline />
@@ -55,6 +61,9 @@ export function App() {
           <Router>
             <Container maxWidth="md">
               <Switch>
+                <Route exact path="/">
+                  <Redirect push to="/l/12345" />
+                </Route>
                 <Route path="/l/:id">
                   <Lobby />
                 </Route>
@@ -65,4 +74,4 @@ export function App() {
       </ThemeProvider>
     </>
   );
-}
+};
