@@ -11,6 +11,7 @@ import { Grid, LinearProgress, Typography } from "@material-ui/core";
 import { Fab } from "@material-ui/core";
 import EditIcon from "@material-ui/icons/Edit";
 import NoteIcon from "@material-ui/icons/Note";
+import ClearIcon from "@material-ui/icons/Clear";
 import styled from "styled-components";
 
 export type SudokuProps = {
@@ -73,6 +74,8 @@ export const Sudoku: React.FC<SudokuProps> = ({ branchId }: SudokuProps) => {
     });
   }, [subscribeToMore, branchId]);
 
+  const toggleInputMode = () => setIsFillInputMode((prev) => !prev);
+
   if (loading) {
     return (
       <Layout>
@@ -103,23 +106,23 @@ export const Sudoku: React.FC<SudokuProps> = ({ branchId }: SudokuProps) => {
             <Grid item md={9}>
               <Typography variant="h5">{branchId}</Typography>
             </Grid>
-            <Grid item md={3}>
-              <Fab
-                color={isFillInputMode ? "primary" : "secondary"}
-                onClick={() => setIsFillInputMode((prev) => !prev)}
-              >
-                {isFillInputMode ? <EditIcon /> : <NoteIcon />}
-              </Fab>
-            </Grid>
           </Grid>
           <SudokuBoard
             board={board}
-            scale={1}
             inputMode={isFillInputMode ? "fill" : "note"}
-            toggleInputMode={() => setIsFillInputMode(!isFillInputMode)}
+            toggleInputMode={toggleInputMode}
           />
         </Grid>
         <Grid item md={4}>
+          <Fab
+            color={isFillInputMode ? "primary" : "secondary"}
+            onClick={toggleInputMode}
+          >
+            {isFillInputMode ? <EditIcon /> : <NoteIcon />}
+          </Fab>
+          <Fab color="secondary" onClick={toggleInputMode}>
+            <ClearIcon />
+          </Fab>
           <History commits={commits} />
         </Grid>
       </Layout>

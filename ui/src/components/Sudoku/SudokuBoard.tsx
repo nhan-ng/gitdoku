@@ -3,7 +3,7 @@ import {
   CommitType,
   useAddCommitMutation,
 } from "../../__generated__/types";
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 import React, { useState } from "react";
 import { useBranchContext } from "../../contexts/BranchContext";
 import {
@@ -23,7 +23,7 @@ import { SudokuCell } from ".";
 const grey = "hsl(213, 30%, 29%)";
 
 type SudokuTableProps = {
-  scale: number;
+  scale?: number;
 };
 
 const SudokuTableContainer = styled(({ ...props }) => (
@@ -33,7 +33,11 @@ const SudokuTableContainer = styled(({ ...props }) => (
 `;
 
 const SudokuTable = styled(Table)<SudokuTableProps>`
-  transform: scale(${({ scale }) => scale});
+  ${({ scale }) =>
+    scale &&
+    css`
+      transform: scale(${scale});
+    `}
   border: 2px solid ${grey};
   border-collapse: collapse;
 `;
@@ -50,7 +54,7 @@ type SelectedCell = {
 };
 
 export type SudokuBoardProps = {
-  scale: number;
+  scale?: number;
   board: Cell[][];
   inputMode: InputMode;
   toggleInputMode?: () => void;
@@ -59,8 +63,8 @@ export type SudokuBoardProps = {
 export type InputMode = "fill" | "note" | "readonly";
 
 export const SudokuBoard: React.FC<SudokuBoardProps> = ({
-  board,
   scale,
+  board,
   inputMode,
   toggleInputMode,
 }) => {

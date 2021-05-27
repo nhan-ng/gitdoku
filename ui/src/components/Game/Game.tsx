@@ -1,7 +1,16 @@
-import { Box, Button, Grid, LinearProgress } from "@material-ui/core";
+import {
+  Box,
+  Button,
+  createStyles,
+  Divider,
+  Grid,
+  LinearProgress,
+  makeStyles,
+  Theme,
+} from "@material-ui/core";
 import { Sudoku } from "components/Sudoku";
 import React, { useState } from "react";
-import { BranchList, PlayerList } from ".";
+import { BranchList, PlayerList, Toolbar } from ".";
 import {
   GetBranchesDocument,
   GetFullBranchDocument,
@@ -11,8 +20,36 @@ import {
 } from "../../__generated__/types";
 import { NewBranchControl } from ".";
 import { MergeBranchControl } from "./MergeBranchControl";
+import FormatAlignLeftIcon from "@material-ui/icons/FormatAlignLeft";
+import FormatAlignCenterIcon from "@material-ui/icons/FormatAlignCenter";
+import FormatAlignRightIcon from "@material-ui/icons/FormatAlignRight";
+import FormatBoldIcon from "@material-ui/icons/FormatBold";
+import FormatItalicIcon from "@material-ui/icons/FormatItalic";
+import FormatUnderlinedIcon from "@material-ui/icons/FormatUnderlined";
+
+const useStyles = makeStyles((theme: Theme) =>
+  createStyles({
+    root: {
+      border: `1px solid ${theme.palette.divider}`,
+      borderRadius: theme.shape.borderRadius,
+      backgroundColor: theme.palette.background.paper,
+      color: theme.palette.text.secondary,
+      "& svg": {
+        margin: theme.spacing(1.5),
+      },
+      "& hr": {
+        margin: theme.spacing(0, 0.5),
+      },
+    },
+    grow: {
+      flexGrow: 1,
+    },
+  })
+);
 
 export const Game: React.FC = () => {
+  const classes = useStyles();
+
   const [branchId, setBranchId] = useState("master");
   const { data, loading, error } = useGetBranchesQuery({
     pollInterval: 5000,
@@ -50,7 +87,17 @@ export const Game: React.FC = () => {
   return (
     <Grid container>
       <Grid item md={12}>
-        <PlayerList />
+        <Grid container alignItems="center" className={classes.root}>
+          <FormatAlignLeftIcon />
+          <FormatAlignCenterIcon />
+          <FormatAlignRightIcon />
+          <Divider orientation="vertical" flexItem />
+          <FormatBoldIcon />
+          <FormatItalicIcon />
+          <FormatUnderlinedIcon />
+          <div className={classes.grow} />
+          <PlayerList />
+        </Grid>
         <Sudoku branchId={branchId} />
       </Grid>
       <Box my={6}>

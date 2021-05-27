@@ -47,9 +47,9 @@ export const BranchList: React.FC<BranchListProps> = ({
             />
             <Box ml={-12} mt={-6}>
               <SudokuBoard
-                board={branch.commit.blob.board}
                 scale={0.5}
-                inputMode={"readonly"}
+                board={branch.commit.blob.board}
+                inputMode="readonly"
               />
             </Box>
           </GridListTile>
