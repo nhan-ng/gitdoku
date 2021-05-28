@@ -4,12 +4,12 @@ import {
   GridListTile,
   GridListTileBar,
   IconButton,
+  makeStyles,
 } from "@material-ui/core";
 import React from "react";
 import { LiteBranchFragment } from "../../__generated__/types";
 import { SudokuBoard } from "../Sudoku";
 import SwapVertIcon from "@material-ui/icons/SwapVert";
-import styled from "styled-components";
 
 type BranchListProps = {
   currentBranchId: string;
@@ -17,17 +17,21 @@ type BranchListProps = {
   onBranchClicked: (branchId: string) => void;
 };
 
-const StyledGridList = styled(GridList)`
-  flex-wrap: nowrap;
-`;
+const useStyles = makeStyles({
+  container: {
+    flexWrap: "nowrap",
+  },
+});
 
 export const BranchList: React.FC<BranchListProps> = ({
   currentBranchId,
   branches,
   onBranchClicked,
 }) => {
+  const classes = useStyles();
+
   return (
-    <StyledGridList cellHeight="auto" cols={3}>
+    <GridList className={classes.container} cellHeight="auto" cols={3}>
       {branches.map((branch) => {
         const isCurrentBranch = branch.id === currentBranchId;
 
@@ -55,6 +59,6 @@ export const BranchList: React.FC<BranchListProps> = ({
           </GridListTile>
         );
       })}
-    </StyledGridList>
+    </GridList>
   );
 };

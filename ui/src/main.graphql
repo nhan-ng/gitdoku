@@ -25,6 +25,13 @@ query GetBranches {
   }
 }
 
+query GetPlayers {
+  players {
+    id
+    displayName
+  }
+}
+
 fragment LiteBranch on Branch {
   id
   commit {

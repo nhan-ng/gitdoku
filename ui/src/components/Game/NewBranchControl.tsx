@@ -1,12 +1,13 @@
-import { Grid } from "@material-ui/core";
+import { Grid, makeStyles } from "@material-ui/core";
 import { IconButton, TextField } from "@material-ui/core";
 import CallSplitIcon from "@material-ui/icons/CallSplit";
 import React, { useState } from "react";
-import styled from "styled-components";
 
-const SplitIcon = styled(CallSplitIcon)`
-  transform: rotate(90deg);
-`;
+const useStyles = makeStyles({
+  icon: {
+    transform: "rotate(90deg)",
+  },
+});
 
 export type NewBranchControlProps = {
   onSubmit: (branchId: string) => Promise<void>;
@@ -15,6 +16,8 @@ export type NewBranchControlProps = {
 export const NewBranchControl: React.FC<NewBranchControlProps> = ({
   onSubmit,
 }) => {
+  const classes = useStyles();
+
   const [branchId, setBranchId] = useState("");
 
   const handleChange = (
@@ -47,7 +50,7 @@ export const NewBranchControl: React.FC<NewBranchControlProps> = ({
       </Grid>
       <Grid item sm={2}>
         <IconButton onClick={handleSubmit} edge="end" color="primary">
-          <SplitIcon />
+          <CallSplitIcon className={classes.icon} />
         </IconButton>
       </Grid>
     </Grid>

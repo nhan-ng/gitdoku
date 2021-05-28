@@ -1,14 +1,15 @@
 import React, { useState } from "react";
 import { Autocomplete } from "@material-ui/lab";
-import { Grid, IconButton, TextField } from "@material-ui/core";
+import { Grid, IconButton, makeStyles, TextField } from "@material-ui/core";
 import CallMergeIcon from "@material-ui/icons/CallMerge";
-import styled from "styled-components";
 
-const MergeIcon = styled(CallMergeIcon)`
-  transform: rotate(90deg);
-`;
+const useStyles = makeStyles({
+  icon: {
+    transform: "rotate(90deg)",
+  },
+});
 
-export type MergeBranchControlProps = {
+type MergeBranchControlProps = {
   onSubmit: (targetBranchId: string) => Promise<void>;
   branchIds: string[];
 };
@@ -17,6 +18,8 @@ export const MergeBranchControl: React.FC<MergeBranchControlProps> = ({
   branchIds,
   onSubmit,
 }) => {
+  const classes = useStyles();
+
   const [selection, setSelection] = useState<string | undefined>(undefined);
 
   const handleSubmit = async (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -62,7 +65,7 @@ export const MergeBranchControl: React.FC<MergeBranchControlProps> = ({
       </Grid>
       <Grid item sm={2}>
         <IconButton color="primary" component="span" onClick={handleSubmit}>
-          <MergeIcon />
+          <CallMergeIcon className={classes.icon} />
         </IconButton>
       </Grid>
     </Grid>

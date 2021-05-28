@@ -1,26 +1,42 @@
 import React from "react";
 import { useLobbyContext } from "../../contexts";
-import {
-  Avatar,
-  Box,
-  CircularProgress,
-  Grid,
-  Typography,
-} from "@material-ui/core";
+import { Avatar } from "@material-ui/core";
+import { Player, useGetPlayersQuery } from "__generated__/types";
+import { AvatarGroup } from "@material-ui/lab";
+import { sortBy } from "lodash";
+
+const acronym = (input: string): string => {
+  const matches = input.match(/\b(\w)/g);
+  return matches?.join("").toUpperCase() ?? "NA";
+};
 
 export const PlayerList: React.FC = () => {
-  const { player } = useLobbyContext();
+  // const { currentPlayer } = useLobbyContext();
+  const { data, loading, error } = useGetPlayersQuery({
+    fetchPolicy: "cache-first",
+    pollInterval: 60000,
+  });
 
-  const acronym = (input: string): string => {
-    const matches = input.match(/\b(\w)/g);
-    return matches?.join("").toUpperCase() ?? "NA";
-  };
+  const players = data?.players;
+  if (loading) {
+    return null;
+  }
+  if (error) {
+    console.log("Error when getting players", error);
+    return null;
+  }
 
   return (
     <>
-      <Avatar alt={player.displayName}>{acronym(player.displayName)}</Avatar>
-      <Avatar alt={player.displayName}>{acronym(player.displayName)}</Avatar>
-      <Avatar alt={player.displayName}>{acronym(player.displayName)}</Avatar>
+      {players && (
+        <AvatarGroup max={3}>
+          {sortBy(players, (p) => p.id).map((player) => {
+            return (
+              <Avatar key={player.id}>{acronym(player.displayName)}</Avatar>
+            );
+          })}
+        </AvatarGroup>
+      )}
     </>
   );
 };

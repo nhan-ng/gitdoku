@@ -3,50 +3,48 @@ import {
   CommitType,
   useAddCommitMutation,
 } from "../../__generated__/types";
-import styled, { css } from "styled-components";
 import React, { useState } from "react";
 import { useBranchContext } from "../../contexts/BranchContext";
 import {
   Table,
   TableBody,
   TableRow,
-  TableCell,
   TableContainer,
   Paper,
   Box,
   LinearProgress,
+  createStyles,
+  Theme,
+  makeStyles,
 } from "@material-ui/core";
 import { SudokuCell } from ".";
+import clsx from "clsx";
 
-// const backgroundColor = "#FFF";
-// const blue = "hsl(210, 88%, 56%)";
-const grey = "hsl(213, 30%, 29%)";
-
-type SudokuTableProps = {
+type StyledProps = {
   scale?: number;
 };
 
-const SudokuTableContainer = styled(({ ...props }) => (
-  <TableContainer {...props} />
-))`
-  width: max-content;
-`;
-
-const SudokuTable = styled(Table)<SudokuTableProps>`
-  ${({ scale }) =>
-    scale &&
-    css`
-      transform: scale(${scale});
-    `}
-  border: 2px solid ${grey};
-  border-collapse: collapse;
-`;
-
-const SudokuRow = styled(TableRow)`
-  &:nth-child(3n) {
-    border-bottom: 2px solid ${grey};
-  }
-`;
+const useStyles = makeStyles<Theme, StyledProps>((theme: Theme) =>
+  createStyles({
+    root: {
+      width: "max-content",
+    },
+    table: {
+      borderRadius: theme.shape.borderRadius,
+      borderStyle: "solid",
+      borderColor: theme.palette.primary.light,
+      borderCollapse: "collapse",
+    },
+    scaled: {
+      transform: ({ scale }) => `scale(${scale})`,
+    },
+    row: {
+      "&:nth-child(3n)": {
+        borderBottom: `2px solid ${theme.palette.primary.light}`,
+      },
+    },
+  })
+);
 
 type SelectedCell = {
   row: number;
@@ -71,6 +69,8 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
   const branchId = useBranchContext();
   const [selectedCell, setSelectedCell] = useState<SelectedCell>();
   const [addCommit, { loading }] = useAddCommitMutation();
+
+  const classes = useStyles({ scale });
 
   const isReadOnly = inputMode === "readonly";
 
@@ -168,13 +168,16 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
     : 0;
 
   return (
-    <SudokuTableContainer component={Paper}>
+    <TableContainer
+      className={clsx(classes.root, scale && classes.scaled)}
+      component={Paper}
+    >
       <Box fontWeight="fontWeightBold">
-        <SudokuTable onKeyDown={onKeyDown} tabIndex={0} scale={scale}>
+        <Table className={classes.table} onKeyDown={onKeyDown} tabIndex={0}>
           <TableBody>
             {board.map((row, i) => {
               return (
-                <SudokuRow key={`${i}`}>
+                <TableRow className={classes.row} key={`${i}`}>
                   {row.map((cell, j) => {
                     const isSelected =
                       (selectedCell &&
@@ -203,13 +206,13 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
                       />
                     );
                   })}
-                </SudokuRow>
+                </TableRow>
               );
             })}
           </TableBody>
-        </SudokuTable>
+        </Table>
         {loading && <LinearProgress />}
       </Box>
-    </SudokuTableContainer>
+    </TableContainer>
   );
 };

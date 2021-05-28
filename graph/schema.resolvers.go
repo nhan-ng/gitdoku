@@ -453,7 +453,15 @@ func (r *queryResolver) Commit(ctx context.Context, id string) (*model.Commit, e
 }
 
 func (r *queryResolver) Players(ctx context.Context) ([]*model.Player, error) {
-	panic(fmt.Errorf("not implemented"))
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	result := make([]*model.Player, 0, len(r.players))
+	for _, player := range r.players {
+		result = append(result, player)
+	}
+
+	return result, nil
 }
 
 func (r *subscriptionResolver) CommitAdded(ctx context.Context, branchID string) (<-chan *model.Commit, error) {

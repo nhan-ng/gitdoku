@@ -7,32 +7,41 @@ import {
   useGetFullBranchQuery,
 } from "__generated__/types";
 import React, { useEffect, useState } from "react";
-import { Grid, LinearProgress, Typography } from "@material-ui/core";
+import {
+  Grid,
+  LinearProgress,
+  makeStyles,
+  Typography,
+} from "@material-ui/core";
 import { Fab } from "@material-ui/core";
 import EditIcon from "@material-ui/icons/Edit";
 import NoteIcon from "@material-ui/icons/Note";
 import ClearIcon from "@material-ui/icons/Clear";
-import styled from "styled-components";
 
-export type SudokuProps = {
-  branchId: string;
-};
-
-const FixedHeightContainer = styled(Grid)`
-  height: 500px;
-`;
+const useStyles = makeStyles({
+  layout: {
+    height: "100%",
+  },
+});
 
 const Layout: React.FC = ({ children }) => {
+  const classes = useStyles();
+
   return (
-    <FixedHeightContainer
+    <Grid
+      className={classes.layout}
       container
       direction="row"
       justify="center"
       alignItems="flex-start"
     >
       {children}
-    </FixedHeightContainer>
+    </Grid>
   );
+};
+
+type SudokuProps = {
+  branchId: string;
 };
 
 export const Sudoku: React.FC<SudokuProps> = ({ branchId }: SudokuProps) => {
@@ -94,8 +103,8 @@ export const Sudoku: React.FC<SudokuProps> = ({ branchId }: SudokuProps) => {
   const commits = data.branch.commits;
 
   return (
-    <BranchContextProvider id={branchId}>
-      <Layout>
+    <Layout>
+      <BranchContextProvider id={branchId}>
         <Grid item md={8}>
           <Grid
             container
@@ -125,7 +134,7 @@ export const Sudoku: React.FC<SudokuProps> = ({ branchId }: SudokuProps) => {
           </Fab>
           <History commits={commits} />
         </Grid>
-      </Layout>
-    </BranchContextProvider>
+      </BranchContextProvider>
+    </Layout>
   );
 };
