@@ -23,7 +23,6 @@
     "react-router-dom": "^5.2.0",
     "react-scripts": "4.0.3",
     "react-window": "^1.8.6",
-    "styled-components": "^5.2.3",
     "subscriptions-transport-ws": "^0.9.18",
     "typescript": "^4.1.2",
     "web-vitals": "^1.0.1"
@@ -63,7 +62,6 @@
     "@types/react-router": "^5.1.14",
     "@types/react-router-dom": "^5.1.7",
     "@types/react-window": "^1.8.3",
-    "@types/styled-components": "^5.1.9",
     "@typescript-eslint/eslint-plugin": "^4.22.0",
     "@typescript-eslint/parser": "^4.22.0",
     "babel-eslint": "^10.1.0",
