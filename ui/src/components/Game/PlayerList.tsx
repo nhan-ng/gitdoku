@@ -3,7 +3,7 @@ import { useLobbyContext } from "../../contexts";
 import { Avatar } from "@material-ui/core";
 import { Player, useGetPlayersQuery } from "__generated__/types";
 import { AvatarGroup } from "@material-ui/lab";
-import { sortBy } from "lodash";
+import { orderBy, sortBy } from "lodash";
 
 const acronym = (input: string): string => {
   const matches = input.match(/\b(\w)/g);
@@ -30,7 +30,7 @@ export const PlayerList: React.FC = () => {
     <>
       {players && (
         <AvatarGroup max={3}>
-          {sortBy(players, (p) => p.id).map((player) => {
+          {orderBy(players, [(p) => p.id]).map((player) => {
             return (
               <Avatar key={player.id}>{acronym(player.displayName)}</Avatar>
             );

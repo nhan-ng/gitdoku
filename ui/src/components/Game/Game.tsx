@@ -26,6 +26,7 @@ import FormatAlignRightIcon from "@material-ui/icons/FormatAlignRight";
 import FormatBoldIcon from "@material-ui/icons/FormatBold";
 import FormatItalicIcon from "@material-ui/icons/FormatItalic";
 import FormatUnderlinedIcon from "@material-ui/icons/FormatUnderlined";
+import { orderBy, sortBy } from "lodash";
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
@@ -78,10 +79,10 @@ export const Game: React.FC = () => {
   }
 
   // Revert sort by commit timestamp, i.e. larger timestamp first
-  const branches = [...data.branches].sort(
-    (a, b) =>
-      new Date(b.commit.authorTimestamp).getTime() -
-      new Date(a.commit.authorTimestamp).getTime()
+  const branches = orderBy(
+    data.branches,
+    [(branch) => new Date(branch.commit.authorTimestamp).getTime()],
+    ["desc"]
   );
 
   return (
