@@ -7,10 +7,10 @@ type Query {
 }
 
 type Mutation {
-  addCommit(input: AddCommitInput!): AddCommitPayload!
-  addBranch(input: AddBranchInput!): AddBranchPayload!
-  mergeBranch(input: MergeBranchInput!): MergeBranchPayload!
-  join: JoinPayload!
+  addCommit(input: AddCommitInput!): AddCommitPayload
+  addBranch(input: AddBranchInput!): AddBranchPayload
+  mergeBranch(input: MergeBranchInput!): MergeBranchPayload
+  join: JoinPayload
 }
 
 input MergeBranchInput {
@@ -33,19 +33,19 @@ input AddCommitInput {
 }
 
 type AddCommitPayload {
-  commit: Commit!
+  commit: Commit
 }
 
 type AddBranchPayload {
-  branch: Branch!
+  branch: Branch
 }
 
 type MergeBranchPayload {
-  sourceBranch: Branch!
+  sourceBranch: Branch
 }
 
 type JoinPayload {
-  player: Player!
+  player: Player
 }
 
 input AddBranchInput {
