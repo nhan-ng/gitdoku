@@ -14,14 +14,7 @@ import {
   ThemeProvider,
 } from "@material-ui/core/styles";
 import "@fontsource/roboto";
-import { ApolloProvider } from "@apollo/client";
-import {
-  BrowserRouter as Router,
-  Switch,
-  Route,
-  Redirect,
-  Link,
-} from "react-router-dom";
+import { BrowserRouter as Router, Switch, Route, Link } from "react-router-dom";
 import { Lobby } from "components/Lobby";
 import { Home } from "components/Home";
 

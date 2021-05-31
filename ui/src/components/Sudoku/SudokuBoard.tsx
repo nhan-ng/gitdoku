@@ -4,7 +4,6 @@ import {
   useAddCommitMutation,
 } from "../../__generated__/types";
 import React, { useState } from "react";
-import { useBranchContext } from "../../contexts/BranchContext";
 import {
   Table,
   TableBody,
@@ -19,6 +18,7 @@ import {
 } from "@material-ui/core";
 import { SudokuCell } from ".";
 import clsx from "clsx";
+import { useSudokuContext } from "./SudokuContext";
 
 type StyledProps = {
   scale?: number;
@@ -45,57 +45,36 @@ const useStyles = makeStyles<Theme, StyledProps>((theme: Theme) =>
   })
 );
 
-type SelectedCell = {
-  row: number;
-  col: number;
-};
-
 export type SudokuBoardProps = {
   scale?: number;
   board: Cell[][];
-  inputMode: InputMode;
-  toggleInputMode?: () => void;
+  isReadOnly?: boolean;
 };
 
-export type InputMode = "fill" | "note" | "readonly";
+export type InputMode = "fill" | "note";
 
 export const SudokuBoard: React.FC<SudokuBoardProps> = ({
   scale,
   board,
-  inputMode,
-  toggleInputMode,
+  isReadOnly,
 }) => {
-  const branchId = useBranchContext();
-  const [selectedCell, setSelectedCell] = useState<SelectedCell>();
+  const {
+    state: { selectedCell, inputMode, branchId },
+    dispatch,
+  } = useSudokuContext();
   const [addCommit, { loading }] = useAddCommitMutation();
 
   const classes = useStyles({ scale });
-
-  const isReadOnly = inputMode === "readonly";
 
   function onCellClicked(row: number, col: number) {
     if (isReadOnly) {
       return;
     }
-    if (!selectedCell) {
-      setSelectedCell({ row, col });
-    } else if (selectedCell.row !== row || selectedCell.col !== col) {
-      setSelectedCell({ row, col });
-    } else {
-      setSelectedCell(undefined);
-    }
-  }
-
-  console.log("rerender");
-
-  function moveSelectedCell(
-    selectedCell: SelectedCell,
-    rowDelta: number,
-    colDelta: number
-  ) {
-    const newRow = Math.min(8, Math.max(0, selectedCell.row + rowDelta));
-    const newCol = Math.min(8, Math.max(0, selectedCell.col + colDelta));
-    setSelectedCell({ row: newRow, col: newCol });
+    dispatch({
+      type: "SET_SELECTED_CELL",
+      row,
+      col,
+    });
   }
 
   async function onKeyDown(e: React.KeyboardEvent<HTMLTableElement>) {
@@ -108,25 +87,23 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
     // Move selected cell
     switch (e.key) {
       case "ArrowDown":
-        moveSelectedCell(selectedCell, 1, 0);
+        dispatch({ type: "MOVE_DOWN" });
         return;
 
       case "ArrowLeft":
-        moveSelectedCell(selectedCell, 0, -1);
+        dispatch({ type: "MOVE_LEFT" });
         return;
 
       case "ArrowRight":
-        moveSelectedCell(selectedCell, 0, 1);
+        dispatch({ type: "MOVE_RIGHT" });
         return;
 
       case "ArrowUp":
-        moveSelectedCell(selectedCell, -1, 0);
+        dispatch({ type: "MOVE_UP" });
         return;
 
       case " ":
-        if (toggleInputMode) {
-          toggleInputMode();
-        }
+        dispatch({ type: "TOGGLE_INPUT_MODE" });
         return;
     }
 
@@ -178,11 +155,11 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
               return (
                 <TableRow className={classes.row} key={`${i}`}>
                   {row.map((cell, j) => {
-                    const isSelected =
-                      (selectedCell &&
-                        selectedCell.row === i &&
-                        selectedCell.col === j) ||
-                      false;
+                    const isSelected = !!(
+                      selectedCell &&
+                      selectedCell.row === i &&
+                      selectedCell.col === j
+                    );
                     if (isSelected) {
                       console.log(
                         "Selected cell",

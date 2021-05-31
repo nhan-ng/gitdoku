@@ -53,7 +53,7 @@ export const BranchList: React.FC<BranchListProps> = ({
               <SudokuBoard
                 scale={0.5}
                 board={branch.commit.blob.board}
-                inputMode="readonly"
+                isReadOnly={true}
               />
             </Box>
           </GridListTile>

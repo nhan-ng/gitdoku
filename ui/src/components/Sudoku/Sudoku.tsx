@@ -1,16 +1,14 @@
 import { History, SudokuBoard } from ".";
-import { BranchContextProvider } from "contexts";
 import {
   OnCommitAddedDocument,
   OnCommitAddedSubscription,
   OnCommitAddedSubscriptionVariables,
   useGetFullBranchQuery,
 } from "__generated__/types";
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import {
   Box,
   createStyles,
-  Divider,
   Grid,
   LinearProgress,
   makeStyles,
@@ -21,13 +19,7 @@ import { Fab } from "@material-ui/core";
 import EditIcon from "@material-ui/icons/Edit";
 import NoteIcon from "@material-ui/icons/Note";
 import ClearIcon from "@material-ui/icons/Clear";
-import FormatAlignLeftIcon from "@material-ui/icons/FormatAlignLeft";
-import FormatAlignCenterIcon from "@material-ui/icons/FormatAlignCenter";
-import FormatAlignRightIcon from "@material-ui/icons/FormatAlignRight";
-import FormatBoldIcon from "@material-ui/icons/FormatBold";
-import FormatItalicIcon from "@material-ui/icons/FormatItalic";
-import FormatUnderlinedIcon from "@material-ui/icons/FormatUnderlined";
-import { PlayerList } from "components/Game";
+import { SudokuContextProvider, useSudokuContext } from "./SudokuContext";
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
@@ -62,14 +54,19 @@ type SudokuProps = {
   branchId: string;
 };
 
-export const Sudoku: React.FC<SudokuProps> = ({ branchId }: SudokuProps) => {
+const SudokuComponent: React.FC = () => {
+  const {
+    state: { branchId, inputMode },
+    dispatch,
+  } = useSudokuContext();
+
   const classes = useStyles();
-  const [isFillInputMode, setIsFillInputMode] = useState(true); // If false -> Note input mode
   const { data, error, loading, subscribeToMore } = useGetFullBranchQuery({
     variables: {
       id: branchId,
     },
   });
+
   useEffect(() => {
     console.log("BranchId", branchId);
     return subscribeToMore<
@@ -102,7 +99,8 @@ export const Sudoku: React.FC<SudokuProps> = ({ branchId }: SudokuProps) => {
     });
   }, [subscribeToMore, branchId]);
 
-  const toggleInputMode = () => setIsFillInputMode((prev) => !prev);
+  const toggleInputMode = () => dispatch({ type: "TOGGLE_INPUT_MODE" });
+  const isFillInputMode = inputMode === "fill";
 
   if (loading) {
     return (
@@ -123,39 +121,41 @@ export const Sudoku: React.FC<SudokuProps> = ({ branchId }: SudokuProps) => {
 
   return (
     <Layout>
-      <BranchContextProvider id={branchId}>
-        <Grid container>
-          <Grid item md={8}>
-            <Grid
-              container
-              direction="row"
-              justify="flex-start"
-              alignItems="flex-start"
-            >
-              <Grid item md={9}>
-                <Typography variant="h5">{branchId}</Typography>
-              </Grid>
+      <Grid container>
+        <Grid item md={8}>
+          <Grid
+            container
+            direction="row"
+            justify="flex-start"
+            alignItems="flex-start"
+          >
+            <Grid item md={9}>
+              <Typography variant="h5">{branchId}</Typography>
             </Grid>
-            <SudokuBoard
-              board={board}
-              inputMode={isFillInputMode ? "fill" : "note"}
-              toggleInputMode={toggleInputMode}
-            />
           </Grid>
-          <Grid item md={4}>
-            <Fab
-              color={isFillInputMode ? "primary" : "secondary"}
-              onClick={toggleInputMode}
-            >
-              {isFillInputMode ? <EditIcon /> : <NoteIcon />}
-            </Fab>
-            <Fab color="secondary" onClick={toggleInputMode}>
-              <ClearIcon />
-            </Fab>
-            <History commits={commits} />
-          </Grid>
+          <SudokuBoard board={board} />
         </Grid>
-      </BranchContextProvider>
+        <Grid item md={4}>
+          <Fab
+            color={isFillInputMode ? "primary" : "secondary"}
+            onClick={toggleInputMode}
+          >
+            {isFillInputMode ? <EditIcon /> : <NoteIcon />}
+          </Fab>
+          <Fab color="secondary" onClick={toggleInputMode}>
+            <ClearIcon />
+          </Fab>
+          <History commits={commits} />
+        </Grid>
+      </Grid>
     </Layout>
+  );
+};
+
+export const Sudoku: React.FC<SudokuProps> = ({ branchId }) => {
+  return (
+    <SudokuContextProvider branchId={branchId}>
+      <SudokuComponent />
+    </SudokuContextProvider>
   );
 };
