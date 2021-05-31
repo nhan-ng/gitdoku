@@ -1,6 +1,8 @@
+import { ApolloProvider } from "@apollo/client";
 import { Game } from "components/Game";
 import { LobbyContextProvider } from "contexts";
-import React from "react";
+import { newClient } from "graphql";
+import React, { useMemo } from "react";
 import { useParams } from "react-router-dom";
 
 type LobbyRouteParams = {
@@ -9,12 +11,21 @@ type LobbyRouteParams = {
 
 export const Lobby: React.FC = () => {
   const { id } = useParams<LobbyRouteParams>();
-  console.log("Lobby: ", id);
+
+  // Initialize a GraphQL client to the dedicated server
+  const address = window.atob(id);
+  console.log("Lobby: ", id, "Address", address);
+  const client = useMemo(
+    () => newClient({ address, withSubscription: true }),
+    [address]
+  );
 
   // Render lobby
   return (
-    <LobbyContextProvider id={id}>
-      <Game />
-    </LobbyContextProvider>
+    <ApolloProvider client={client}>
+      <LobbyContextProvider id={id}>
+        <Game />
+      </LobbyContextProvider>
+    </ApolloProvider>
   );
 };

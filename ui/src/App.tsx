@@ -13,15 +13,7 @@ import {
   ThemeProvider,
 } from "@material-ui/core/styles";
 import "@fontsource/roboto";
-import {
-  ApolloClient,
-  ApolloProvider,
-  HttpLink,
-  InMemoryCache,
-  split,
-} from "@apollo/client";
-import { getMainDefinition } from "@apollo/client/utilities";
-import { WebSocketLink } from "@apollo/client/link/ws";
+import { ApolloProvider } from "@apollo/client";
 import {
   BrowserRouter as Router,
   Switch,
@@ -29,33 +21,8 @@ import {
   Redirect,
 } from "react-router-dom";
 import { Lobby } from "components/Lobby";
+import { newClient } from "graphql";
 
-const httpLink = new HttpLink({
-  uri: "http://localhost:9999/graphql",
-});
-const wsLink = new WebSocketLink({
-  uri: "ws://localhost:9999/graphql",
-  options: {
-    reconnect: true,
-  },
-});
-const splitLink = split(
-  ({ query }) => {
-    const definition = getMainDefinition(query);
-    return (
-      definition.kind === "OperationDefinition" &&
-      definition.operation === "subscription"
-    );
-  },
-  wsLink,
-  httpLink
-);
-
-const client = new ApolloClient({
-  cache: new InMemoryCache(),
-  link: splitLink,
-  // link: httpLink,
-});
 const theme = createMuiTheme({});
 
 const useStyles = makeStyles((theme) => ({
@@ -77,6 +44,8 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
+const defaultEncodedGameServerAddress = "bG9jYWxob3N0Ojk5OTkvZ3JhcGhxbA=="; // localhost:9999/graphql
+
 // Routes
 
 export const App: React.FC = () => {
@@ -86,35 +55,40 @@ export const App: React.FC = () => {
     <div className={classes.root}>
       <CssBaseline />
       <ThemeProvider theme={theme}>
-        <ApolloProvider client={client}>
-          <AppBar position="absolute">
-            <Box m={1}>
-              <Typography
-                variant="h6"
-                component="h1"
-                color="inherit"
-                className={classes.title}
-              >
-                Gitdoku
-              </Typography>
-            </Box>
-          </AppBar>
-          <main className={classes.content}>
-            <div className={classes.appBarSpacer} />
-            <Container maxWidth="md" className={classes.container}>
-              <Router>
-                <Switch>
-                  <Route exact path="/">
-                    <Redirect push to="/l/12345" />
-                  </Route>
-                  <Route path="/l/:id">
-                    <Lobby />
-                  </Route>
-                </Switch>
-              </Router>
-            </Container>
-          </main>
-        </ApolloProvider>
+        <AppBar position="absolute">
+          <Box m={1}>
+            <Typography
+              variant="h6"
+              component="h1"
+              color="inherit"
+              className={classes.title}
+            >
+              Gitdoku
+            </Typography>
+          </Box>
+        </AppBar>
+        <main className={classes.content}>
+          <div className={classes.appBarSpacer} />
+          <Container maxWidth="md" className={classes.container}>
+            <Router>
+              <Switch>
+                <Route exact path="/">
+                  <ApolloProvider
+                    client={newClient({ address: "localhost:9998/graphql" })}
+                  >
+                    <Redirect
+                      push
+                      to={`/l/${defaultEncodedGameServerAddress}`}
+                    />
+                  </ApolloProvider>
+                </Route>
+                <Route path="/l/:id">
+                  <Lobby />
+                </Route>
+              </Switch>
+            </Router>
+          </Container>
+        </main>
       </ThemeProvider>
     </div>
   );
