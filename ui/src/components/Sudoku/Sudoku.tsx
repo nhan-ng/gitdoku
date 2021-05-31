@@ -1,4 +1,4 @@
-import { History, SudokuBoard } from ".";
+import { History, SudokuBoard, Toolbar } from ".";
 import {
   CommitType,
   OnCommitAddedDocument,
@@ -62,7 +62,6 @@ const SudokuComponent: React.FC = () => {
     dispatch,
   } = useSudokuContext();
 
-  const classes = useStyles();
   const { data, error, loading, subscribeToMore } = useGetFullBranchQuery({
     variables: {
       id: branchId,
@@ -103,9 +102,30 @@ const SudokuComponent: React.FC = () => {
     });
   }, [subscribeToMore, branchId]);
 
-  const toggleInputMode = () => dispatch({ type: "TOGGLE_INPUT_MODE" });
-  const removeCell = async (event: React.SyntheticEvent) => {
-    event.preventDefault();
+  const onNumberInput = async (val: number) => {
+    if (!selectedCell) {
+      return;
+    }
+
+    try {
+      await addCommit({
+        variables: {
+          input: {
+            type:
+              inputMode === "fill" ? CommitType.AddFill : CommitType.ToggleNote,
+            branchId: branchId,
+            row: selectedCell.row,
+            col: selectedCell.col,
+            val: val,
+          },
+        },
+      });
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  const onNumberDelete = async () => {
     if (!selectedCell) {
       return;
     }
@@ -125,8 +145,6 @@ const SudokuComponent: React.FC = () => {
       console.log(err);
     }
   };
-
-  const isFillInputMode = inputMode === "fill";
 
   if (loading) {
     return (
@@ -149,28 +167,18 @@ const SudokuComponent: React.FC = () => {
     <Layout>
       <Grid container>
         <Grid item md={8}>
-          <Grid
-            container
-            direction="row"
-            justify="flex-start"
-            alignItems="flex-start"
-          >
-            <Grid item md={9}>
-              <Typography variant="h5">{branchId}</Typography>
-            </Grid>
-          </Grid>
-          <SudokuBoard board={board} loading={addCommitMutation.loading} />
+          <Toolbar
+            onNumberInput={onNumberInput}
+            onNumberDelete={onNumberDelete}
+          />
+          <SudokuBoard
+            board={board}
+            loading={addCommitMutation.loading}
+            onNumberInput={onNumberInput}
+            onNumberDelete={onNumberDelete}
+          />
         </Grid>
         <Grid item md={4}>
-          <Fab
-            color={isFillInputMode ? "primary" : "secondary"}
-            onClick={toggleInputMode}
-          >
-            {isFillInputMode ? <EditIcon /> : <NoteIcon />}
-          </Fab>
-          <Fab color="secondary" onClick={removeCell}>
-            <ClearIcon />
-          </Fab>
           <History commits={commits} />
         </Grid>
       </Grid>

@@ -50,6 +50,8 @@ export type SudokuBoardProps = {
   board: Cell[][];
   isReadOnly?: boolean;
   loading?: boolean;
+  onNumberInput?: (input: number) => Promise<void>;
+  onNumberDelete?: () => Promise<void>;
 };
 
 export type InputMode = "fill" | "note";
@@ -59,12 +61,13 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
   board,
   isReadOnly,
   loading,
+  onNumberInput,
+  onNumberDelete,
 }) => {
   const {
-    state: { selectedCell, inputMode, branchId },
+    state: { selectedCell },
     dispatch,
   } = useSudokuContext();
-  const [addCommit, { loading: addCommitLoading }] = useAddCommitMutation();
 
   const classes = useStyles({ scale });
 
@@ -107,41 +110,29 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
       case " ":
         dispatch({ type: "TOGGLE_INPUT_MODE" });
         return;
-    }
 
-    // If the input is number 1-9
-    const action =
-      "1" <= e.key && e.key <= "9"
-        ? inputMode === "fill"
-          ? CommitType.AddFill
-          : CommitType.ToggleNote
-        : e.key === "0" || e.key === "Backspace" || e.key === "Delete"
-        ? CommitType.RemoveFill
-        : CommitType.Unknown;
+      case "1":
+      case "2":
+      case "3":
+      case "4":
+      case "5":
+      case "6":
+      case "7":
+      case "8":
+      case "9":
+        if (onNumberInput) {
+          await onNumberInput(parseInt(e.key, 10));
+        }
+        return;
 
-    if (action === CommitType.Unknown) {
-      return;
-    }
-
-    console.log("Add new commit", action);
-    try {
-      await addCommit({
-        variables: {
-          input: {
-            row: selectedCell.row,
-            col: selectedCell.col,
-            val: parseInt(e.key, 10) || 0,
-            type: action,
-            branchId: branchId,
-          },
-        },
-      });
-    } catch (e) {
-      console.log(e);
+      case "Backspace":
+      case "Delete":
+        if (onNumberDelete) {
+          await onNumberDelete();
+        }
+        return;
     }
   }
-
-  const isLoading = loading || addCommitLoading;
 
   const selectedVal = selectedCell
     ? board[selectedCell.row][selectedCell.col].val
@@ -164,14 +155,6 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
                       selectedCell.row === i &&
                       selectedCell.col === j
                     );
-                    if (isSelected) {
-                      console.log(
-                        "Selected cell",
-                        JSON.stringify(selectedCell),
-                        i,
-                        j
-                      );
-                    }
 
                     const isPeered =
                       selectedVal === cell.val && selectedVal !== 0;
@@ -191,7 +174,7 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
             })}
           </TableBody>
         </Table>
-        {isLoading && <LinearProgress />}
+        {loading && <LinearProgress />}
       </Box>
     </TableContainer>
   );

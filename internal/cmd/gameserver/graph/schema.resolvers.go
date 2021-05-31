@@ -122,7 +122,7 @@ func (r *mutationResolver) AddCommit(ctx context.Context, input model.AddCommitI
 	// Validate value type if applicable
 	switch input.Type {
 	case model.CommitTypeAddFill, model.CommitTypeToggleNote:
-		if input.Val == nil || *input.Val < 0 || *input.Val >= 9 {
+		if input.Val == nil || *input.Val <= 0 || *input.Val > 9 {
 			return nil, gqlerrors.ErrInvalidInputValue()
 		}
 	}
