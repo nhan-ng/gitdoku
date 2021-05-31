@@ -16,6 +16,7 @@ import {
 import React from "react";
 import CreateIcon from "@material-ui/icons/Create";
 import CommentIcon from "@material-ui/icons/Comment";
+import BackspaceIcon from "@material-ui/icons/Backspace";
 import RateReviewIcon from "@material-ui/icons/RateReview";
 import DeleteIcon from "@material-ui/icons/Delete";
 import { SudokuInputMode, useSudokuContext } from ".";
@@ -95,7 +96,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         <Divider flexItem orientation="vertical" className={classes.divider} />
         <IconButton>
           <Tooltip title="Delete">
-            <DeleteIcon onClick={() => onNumberDelete()} />
+            <BackspaceIcon onClick={() => onNumberDelete()} />
           </Tooltip>
         </IconButton>
         <Divider flexItem orientation="vertical" className={classes.divider} />
@@ -105,7 +106,11 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             <Button key={i} onClick={() => onNumberInput(val)}>
               <Typography
                 variant="h5"
-                color="textSecondary"
+                color={
+                  inputMode === SudokuInputMode.Fill
+                    ? "textPrimary"
+                    : "textSecondary"
+                }
                 className={classes.number}
               >
                 {val}
