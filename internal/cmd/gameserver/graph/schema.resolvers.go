@@ -8,14 +8,13 @@ import (
 	"fmt"
 	"sort"
 
-	generated2 "github.com/nhan-ng/sudoku/internal/cmd/gameserver/graph/generated"
-	gqlerrors2 "github.com/nhan-ng/sudoku/internal/cmd/gameserver/graph/gqlerrors"
-	model2 "github.com/nhan-ng/sudoku/internal/cmd/gameserver/graph/model"
-
 	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/google/uuid"
+	generated2 "github.com/nhan-ng/sudoku/internal/cmd/gameserver/graph/generated"
+	gqlerrors2 "github.com/nhan-ng/sudoku/internal/cmd/gameserver/graph/gqlerrors"
+	model2 "github.com/nhan-ng/sudoku/internal/cmd/gameserver/graph/model"
 	"github.com/nhan-ng/sudoku/internal/cmd/gameserver/middleware"
 	"github.com/nhan-ng/sudoku/internal/namesgenerator"
 	"go.uber.org/zap"
@@ -497,22 +496,22 @@ func (r *sudokuResolver) Branch(ctx context.Context, obj *model2.Sudoku) (*model
 	return ConvertBranch(ref), nil
 }
 
-// Branch returns generated.BranchResolver implementation.
+// Branch returns generated2.BranchResolver implementation.
 func (r *Resolver) Branch() generated2.BranchResolver { return &branchResolver{r} }
 
-// Commit returns generated.CommitResolver implementation.
+// Commit returns generated2.CommitResolver implementation.
 func (r *Resolver) Commit() generated2.CommitResolver { return &commitResolver{r} }
 
-// Mutation returns generated.MutationResolver implementation.
+// Mutation returns generated2.MutationResolver implementation.
 func (r *Resolver) Mutation() generated2.MutationResolver { return &mutationResolver{r} }
 
-// Query returns generated.QueryResolver implementation.
+// Query returns generated2.QueryResolver implementation.
 func (r *Resolver) Query() generated2.QueryResolver { return &queryResolver{r} }
 
-// Subscription returns generated.SubscriptionResolver implementation.
+// Subscription returns generated2.SubscriptionResolver implementation.
 func (r *Resolver) Subscription() generated2.SubscriptionResolver { return &subscriptionResolver{r} }
 
-// Sudoku returns generated.SudokuResolver implementation.
+// Sudoku returns generated2.SudokuResolver implementation.
 func (r *Resolver) Sudoku() generated2.SudokuResolver { return &sudokuResolver{r} }
 
 type branchResolver struct{ *Resolver }

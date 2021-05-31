@@ -4,5 +4,4 @@ package model
 
 type AllocateGamePayload struct {
 	Address string `json:"address"`
-	Port    string `json:"port"`
 }

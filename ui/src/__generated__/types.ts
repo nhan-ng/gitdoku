@@ -30,7 +30,7 @@ export type AddBranchInput = {
 
 export type AddBranchPayload = {
   __typename: 'AddBranchPayload';
-  branch: Branch;
+  branch?: Maybe<Branch>;
 };
 
 export type AddCommitInput = {
@@ -43,7 +43,12 @@ export type AddCommitInput = {
 
 export type AddCommitPayload = {
   __typename: 'AddCommitPayload';
-  commit: Commit;
+  commit?: Maybe<Commit>;
+};
+
+export type AllocateGamePayload = {
+  __typename: 'AllocateGamePayload';
+  address: Scalars['String'];
 };
 
 export type Blob = {
@@ -91,7 +96,7 @@ export enum CommitType {
 
 export type JoinPayload = {
   __typename: 'JoinPayload';
-  player: Player;
+  player?: Maybe<Player>;
 };
 
 export type MergeBranchInput = {
@@ -102,25 +107,26 @@ export type MergeBranchInput = {
 
 export type MergeBranchPayload = {
   __typename: 'MergeBranchPayload';
-  sourceBranch: Branch;
+  sourceBranch?: Maybe<Branch>;
 };
 
 export type Mutation = {
   __typename: 'Mutation';
-  addCommit: AddCommitPayload;
-  addBranch: AddBranchPayload;
-  mergeBranch: MergeBranchPayload;
-  join: JoinPayload;
-};
-
-
-export type MutationAddCommitArgs = {
-  input: AddCommitInput;
+  addBranch?: Maybe<AddBranchPayload>;
+  addCommit?: Maybe<AddCommitPayload>;
+  allocateGame?: Maybe<AllocateGamePayload>;
+  join?: Maybe<JoinPayload>;
+  mergeBranch?: Maybe<MergeBranchPayload>;
 };
 
 
 export type MutationAddBranchArgs = {
   input: AddBranchInput;
+};
+
+
+export type MutationAddCommitArgs = {
+  input: AddCommitInput;
 };
 
 
@@ -136,11 +142,12 @@ export type Player = {
 
 export type Query = {
   __typename: 'Query';
-  sudoku: Sudoku;
   branch: Branch;
   branches: Array<Branch>;
   commit: Commit;
+  ping?: Maybe<Scalars['String']>;
   players: Array<Player>;
+  sudoku: Sudoku;
 };
 
 
@@ -172,6 +179,17 @@ export type Sudoku = {
 
 
 
+
+export type CreateNewGameMutationVariables = Exact<{ [key: string]: never; }>;
+
+
+export type CreateNewGameMutation = (
+  { __typename: 'Mutation' }
+  & { allocateGame?: Maybe<(
+    { __typename: 'AllocateGamePayload' }
+    & Pick<AllocateGamePayload, 'address'>
+  )> }
+);
 
 export type GetSudokuQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -259,13 +277,13 @@ export type JoinMutationVariables = Exact<{ [key: string]: never; }>;
 
 export type JoinMutation = (
   { __typename: 'Mutation' }
-  & { join: (
+  & { join?: Maybe<(
     { __typename: 'JoinPayload' }
-    & { player: (
+    & { player?: Maybe<(
       { __typename: 'Player' }
       & Pick<Player, 'id' | 'displayName'>
-    ) }
-  ) }
+    )> }
+  )> }
 );
 
 export type AddCommitMutationVariables = Exact<{
@@ -275,13 +293,13 @@ export type AddCommitMutationVariables = Exact<{
 
 export type AddCommitMutation = (
   { __typename: 'Mutation' }
-  & { addCommit: (
+  & { addCommit?: Maybe<(
     { __typename: 'AddCommitPayload' }
-    & { commit: (
+    & { commit?: Maybe<(
       { __typename: 'Commit' }
       & CommitFragment
-    ) }
-  ) }
+    )> }
+  )> }
 );
 
 export type AddBranchMutationVariables = Exact<{
@@ -291,13 +309,13 @@ export type AddBranchMutationVariables = Exact<{
 
 export type AddBranchMutation = (
   { __typename: 'Mutation' }
-  & { addBranch: (
+  & { addBranch?: Maybe<(
     { __typename: 'AddBranchPayload' }
-    & { branch: (
+    & { branch?: Maybe<(
       { __typename: 'Branch' }
       & LiteBranchFragment
-    ) }
-  ) }
+    )> }
+  )> }
 );
 
 export type MergeBranchMutationVariables = Exact<{
@@ -307,13 +325,13 @@ export type MergeBranchMutationVariables = Exact<{
 
 export type MergeBranchMutation = (
   { __typename: 'Mutation' }
-  & { mergeBranch: (
+  & { mergeBranch?: Maybe<(
     { __typename: 'MergeBranchPayload' }
-    & { sourceBranch: (
+    & { sourceBranch?: Maybe<(
       { __typename: 'Branch' }
       & LiteBranchFragment
-    ) }
-  ) }
+    )> }
+  )> }
 );
 
 export type OnCommitAddedSubscriptionVariables = Exact<{
@@ -386,6 +404,38 @@ export const FullBranchFragmentDoc = gql`
 }
     ${LiteBranchFragmentDoc}
 ${CommitFragmentDoc}`;
+export const CreateNewGameDocument = gql`
+    mutation CreateNewGame {
+  allocateGame {
+    address
+  }
+}
+    `;
+export type CreateNewGameMutationFn = Apollo.MutationFunction<CreateNewGameMutation, CreateNewGameMutationVariables>;
+
+/**
+ * __useCreateNewGameMutation__
+ *
+ * To run a mutation, you first call `useCreateNewGameMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useCreateNewGameMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [createNewGameMutation, { data, loading, error }] = useCreateNewGameMutation({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useCreateNewGameMutation(baseOptions?: Apollo.MutationHookOptions<CreateNewGameMutation, CreateNewGameMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<CreateNewGameMutation, CreateNewGameMutationVariables>(CreateNewGameDocument, options);
+      }
+export type CreateNewGameMutationHookResult = ReturnType<typeof useCreateNewGameMutation>;
+export type CreateNewGameMutationResult = Apollo.MutationResult<CreateNewGameMutation>;
+export type CreateNewGameMutationOptions = Apollo.BaseMutationOptions<CreateNewGameMutation, CreateNewGameMutationVariables>;
 export const GetSudokuDocument = gql`
     query GetSudoku {
   sudoku {

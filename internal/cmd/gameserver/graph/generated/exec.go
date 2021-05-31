@@ -12,10 +12,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	model2 "github.com/nhan-ng/sudoku/internal/cmd/gameserver/graph/model"
-
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
+	"github.com/nhan-ng/sudoku/internal/cmd/gameserver/graph/model"
 	gqlparser "github.com/vektah/gqlparser/v2"
 	"github.com/vektah/gqlparser/v2/ast"
 )
@@ -97,10 +96,10 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		AddBranch   func(childComplexity int, input model2.AddBranchInput) int
-		AddCommit   func(childComplexity int, input model2.AddCommitInput) int
+		AddBranch   func(childComplexity int, input model.AddBranchInput) int
+		AddCommit   func(childComplexity int, input model.AddCommitInput) int
 		Join        func(childComplexity int) int
-		MergeBranch func(childComplexity int, input model2.MergeBranchInput) int
+		MergeBranch func(childComplexity int, input model.MergeBranchInput) int
 	}
 
 	Player struct {
@@ -128,31 +127,31 @@ type ComplexityRoot struct {
 }
 
 type BranchResolver interface {
-	Commit(ctx context.Context, obj *model2.Branch) (*model2.Commit, error)
-	Commits(ctx context.Context, obj *model2.Branch) ([]*model2.Commit, error)
+	Commit(ctx context.Context, obj *model.Branch) (*model.Commit, error)
+	Commits(ctx context.Context, obj *model.Branch) ([]*model.Commit, error)
 }
 type CommitResolver interface {
-	Parents(ctx context.Context, obj *model2.Commit) ([]*model2.Commit, error)
-	Blob(ctx context.Context, obj *model2.Commit) (*model2.Blob, error)
+	Parents(ctx context.Context, obj *model.Commit) ([]*model.Commit, error)
+	Blob(ctx context.Context, obj *model.Commit) (*model.Blob, error)
 }
 type MutationResolver interface {
-	AddCommit(ctx context.Context, input model2.AddCommitInput) (*model2.AddCommitPayload, error)
-	AddBranch(ctx context.Context, input model2.AddBranchInput) (*model2.AddBranchPayload, error)
-	MergeBranch(ctx context.Context, input model2.MergeBranchInput) (*model2.MergeBranchPayload, error)
-	Join(ctx context.Context) (*model2.JoinPayload, error)
+	AddCommit(ctx context.Context, input model.AddCommitInput) (*model.AddCommitPayload, error)
+	AddBranch(ctx context.Context, input model.AddBranchInput) (*model.AddBranchPayload, error)
+	MergeBranch(ctx context.Context, input model.MergeBranchInput) (*model.MergeBranchPayload, error)
+	Join(ctx context.Context) (*model.JoinPayload, error)
 }
 type QueryResolver interface {
-	Sudoku(ctx context.Context) (*model2.Sudoku, error)
-	Branch(ctx context.Context, id string) (*model2.Branch, error)
-	Branches(ctx context.Context) ([]*model2.Branch, error)
-	Commit(ctx context.Context, id string) (*model2.Commit, error)
-	Players(ctx context.Context) ([]*model2.Player, error)
+	Sudoku(ctx context.Context) (*model.Sudoku, error)
+	Branch(ctx context.Context, id string) (*model.Branch, error)
+	Branches(ctx context.Context) ([]*model.Branch, error)
+	Commit(ctx context.Context, id string) (*model.Commit, error)
+	Players(ctx context.Context) ([]*model.Player, error)
 }
 type SubscriptionResolver interface {
-	CommitAdded(ctx context.Context, branchID string) (<-chan *model2.Commit, error)
+	CommitAdded(ctx context.Context, branchID string) (<-chan *model.Commit, error)
 }
 type SudokuResolver interface {
-	Branch(ctx context.Context, obj *model2.Sudoku) (*model2.Branch, error)
+	Branch(ctx context.Context, obj *model.Sudoku) (*model.Branch, error)
 }
 
 type executableSchema struct {
@@ -334,7 +333,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.AddBranch(childComplexity, args["input"].(model2.AddBranchInput)), true
+		return e.complexity.Mutation.AddBranch(childComplexity, args["input"].(model.AddBranchInput)), true
 
 	case "Mutation.addCommit":
 		if e.complexity.Mutation.AddCommit == nil {
@@ -346,7 +345,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.AddCommit(childComplexity, args["input"].(model2.AddCommitInput)), true
+		return e.complexity.Mutation.AddCommit(childComplexity, args["input"].(model.AddCommitInput)), true
 
 	case "Mutation.join":
 		if e.complexity.Mutation.Join == nil {
@@ -365,7 +364,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.MergeBranch(childComplexity, args["input"].(model2.MergeBranchInput)), true
+		return e.complexity.Mutation.MergeBranch(childComplexity, args["input"].(model.MergeBranchInput)), true
 
 	case "Player.displayName":
 		if e.complexity.Player.DisplayName == nil {
@@ -669,10 +668,10 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 func (ec *executionContext) field_Mutation_addBranch_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 model2.AddBranchInput
+	var arg0 model.AddBranchInput
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNAddBranchInput2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐAddBranchInput(ctx, tmp)
+		arg0, err = ec.unmarshalNAddBranchInput2githubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐAddBranchInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -684,10 +683,10 @@ func (ec *executionContext) field_Mutation_addBranch_args(ctx context.Context, r
 func (ec *executionContext) field_Mutation_addCommit_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 model2.AddCommitInput
+	var arg0 model.AddCommitInput
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNAddCommitInput2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐAddCommitInput(ctx, tmp)
+		arg0, err = ec.unmarshalNAddCommitInput2githubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐAddCommitInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -699,10 +698,10 @@ func (ec *executionContext) field_Mutation_addCommit_args(ctx context.Context, r
 func (ec *executionContext) field_Mutation_mergeBranch_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 model2.MergeBranchInput
+	var arg0 model.MergeBranchInput
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNMergeBranchInput2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐMergeBranchInput(ctx, tmp)
+		arg0, err = ec.unmarshalNMergeBranchInput2githubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐMergeBranchInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -809,7 +808,7 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 
 // region    **************************** field.gotpl *****************************
 
-func (ec *executionContext) _AddBranchPayload_branch(ctx context.Context, field graphql.CollectedField, obj *model2.AddBranchPayload) (ret graphql.Marshaler) {
+func (ec *executionContext) _AddBranchPayload_branch(ctx context.Context, field graphql.CollectedField, obj *model.AddBranchPayload) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -836,12 +835,12 @@ func (ec *executionContext) _AddBranchPayload_branch(ctx context.Context, field 
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*model2.Branch)
+	res := resTmp.(*model.Branch)
 	fc.Result = res
-	return ec.marshalOBranch2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐBranch(ctx, field.Selections, res)
+	return ec.marshalOBranch2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐBranch(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _AddCommitPayload_commit(ctx context.Context, field graphql.CollectedField, obj *model2.AddCommitPayload) (ret graphql.Marshaler) {
+func (ec *executionContext) _AddCommitPayload_commit(ctx context.Context, field graphql.CollectedField, obj *model.AddCommitPayload) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -868,12 +867,12 @@ func (ec *executionContext) _AddCommitPayload_commit(ctx context.Context, field 
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*model2.Commit)
+	res := resTmp.(*model.Commit)
 	fc.Result = res
-	return ec.marshalOCommit2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCommit(ctx, field.Selections, res)
+	return ec.marshalOCommit2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐCommit(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Blob_board(ctx context.Context, field graphql.CollectedField, obj *model2.Blob) (ret graphql.Marshaler) {
+func (ec *executionContext) _Blob_board(ctx context.Context, field graphql.CollectedField, obj *model.Blob) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -903,12 +902,12 @@ func (ec *executionContext) _Blob_board(ctx context.Context, field graphql.Colle
 		}
 		return graphql.Null
 	}
-	res := resTmp.([][]model2.Cell)
+	res := resTmp.([][]model.Cell)
 	fc.Result = res
-	return ec.marshalNCell2ᚕᚕgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCellᚄ(ctx, field.Selections, res)
+	return ec.marshalNCell2ᚕᚕgithubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐCellᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Branch_id(ctx context.Context, field graphql.CollectedField, obj *model2.Branch) (ret graphql.Marshaler) {
+func (ec *executionContext) _Branch_id(ctx context.Context, field graphql.CollectedField, obj *model.Branch) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -943,7 +942,7 @@ func (ec *executionContext) _Branch_id(ctx context.Context, field graphql.Collec
 	return ec.marshalNID2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Branch_commitId(ctx context.Context, field graphql.CollectedField, obj *model2.Branch) (ret graphql.Marshaler) {
+func (ec *executionContext) _Branch_commitId(ctx context.Context, field graphql.CollectedField, obj *model.Branch) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -978,7 +977,7 @@ func (ec *executionContext) _Branch_commitId(ctx context.Context, field graphql.
 	return ec.marshalNID2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Branch_commit(ctx context.Context, field graphql.CollectedField, obj *model2.Branch) (ret graphql.Marshaler) {
+func (ec *executionContext) _Branch_commit(ctx context.Context, field graphql.CollectedField, obj *model.Branch) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1008,12 +1007,12 @@ func (ec *executionContext) _Branch_commit(ctx context.Context, field graphql.Co
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model2.Commit)
+	res := resTmp.(*model.Commit)
 	fc.Result = res
-	return ec.marshalNCommit2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCommit(ctx, field.Selections, res)
+	return ec.marshalNCommit2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐCommit(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Branch_commits(ctx context.Context, field graphql.CollectedField, obj *model2.Branch) (ret graphql.Marshaler) {
+func (ec *executionContext) _Branch_commits(ctx context.Context, field graphql.CollectedField, obj *model.Branch) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1043,12 +1042,12 @@ func (ec *executionContext) _Branch_commits(ctx context.Context, field graphql.C
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model2.Commit)
+	res := resTmp.([]*model.Commit)
 	fc.Result = res
-	return ec.marshalNCommit2ᚕᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCommitᚄ(ctx, field.Selections, res)
+	return ec.marshalNCommit2ᚕᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐCommitᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Cell_immutable(ctx context.Context, field graphql.CollectedField, obj *model2.Cell) (ret graphql.Marshaler) {
+func (ec *executionContext) _Cell_immutable(ctx context.Context, field graphql.CollectedField, obj *model.Cell) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1083,7 +1082,7 @@ func (ec *executionContext) _Cell_immutable(ctx context.Context, field graphql.C
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Cell_val(ctx context.Context, field graphql.CollectedField, obj *model2.Cell) (ret graphql.Marshaler) {
+func (ec *executionContext) _Cell_val(ctx context.Context, field graphql.CollectedField, obj *model.Cell) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1118,7 +1117,7 @@ func (ec *executionContext) _Cell_val(ctx context.Context, field graphql.Collect
 	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Cell_notes(ctx context.Context, field graphql.CollectedField, obj *model2.Cell) (ret graphql.Marshaler) {
+func (ec *executionContext) _Cell_notes(ctx context.Context, field graphql.CollectedField, obj *model.Cell) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1153,7 +1152,7 @@ func (ec *executionContext) _Cell_notes(ctx context.Context, field graphql.Colle
 	return ec.marshalNInt2ᚕintᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Commit_id(ctx context.Context, field graphql.CollectedField, obj *model2.Commit) (ret graphql.Marshaler) {
+func (ec *executionContext) _Commit_id(ctx context.Context, field graphql.CollectedField, obj *model.Commit) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1188,7 +1187,7 @@ func (ec *executionContext) _Commit_id(ctx context.Context, field graphql.Collec
 	return ec.marshalNID2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Commit_authorId(ctx context.Context, field graphql.CollectedField, obj *model2.Commit) (ret graphql.Marshaler) {
+func (ec *executionContext) _Commit_authorId(ctx context.Context, field graphql.CollectedField, obj *model.Commit) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1223,7 +1222,7 @@ func (ec *executionContext) _Commit_authorId(ctx context.Context, field graphql.
 	return ec.marshalNID2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Commit_authorTimestamp(ctx context.Context, field graphql.CollectedField, obj *model2.Commit) (ret graphql.Marshaler) {
+func (ec *executionContext) _Commit_authorTimestamp(ctx context.Context, field graphql.CollectedField, obj *model.Commit) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1258,7 +1257,7 @@ func (ec *executionContext) _Commit_authorTimestamp(ctx context.Context, field g
 	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Commit_parentIds(ctx context.Context, field graphql.CollectedField, obj *model2.Commit) (ret graphql.Marshaler) {
+func (ec *executionContext) _Commit_parentIds(ctx context.Context, field graphql.CollectedField, obj *model.Commit) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1293,7 +1292,7 @@ func (ec *executionContext) _Commit_parentIds(ctx context.Context, field graphql
 	return ec.marshalNID2ᚕstringᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Commit_parents(ctx context.Context, field graphql.CollectedField, obj *model2.Commit) (ret graphql.Marshaler) {
+func (ec *executionContext) _Commit_parents(ctx context.Context, field graphql.CollectedField, obj *model.Commit) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1323,12 +1322,12 @@ func (ec *executionContext) _Commit_parents(ctx context.Context, field graphql.C
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model2.Commit)
+	res := resTmp.([]*model.Commit)
 	fc.Result = res
-	return ec.marshalNCommit2ᚕᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCommitᚄ(ctx, field.Selections, res)
+	return ec.marshalNCommit2ᚕᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐCommitᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Commit_blob(ctx context.Context, field graphql.CollectedField, obj *model2.Commit) (ret graphql.Marshaler) {
+func (ec *executionContext) _Commit_blob(ctx context.Context, field graphql.CollectedField, obj *model.Commit) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1358,12 +1357,12 @@ func (ec *executionContext) _Commit_blob(ctx context.Context, field graphql.Coll
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model2.Blob)
+	res := resTmp.(*model.Blob)
 	fc.Result = res
-	return ec.marshalNBlob2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐBlob(ctx, field.Selections, res)
+	return ec.marshalNBlob2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐBlob(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Commit_type(ctx context.Context, field graphql.CollectedField, obj *model2.Commit) (ret graphql.Marshaler) {
+func (ec *executionContext) _Commit_type(ctx context.Context, field graphql.CollectedField, obj *model.Commit) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1393,12 +1392,12 @@ func (ec *executionContext) _Commit_type(ctx context.Context, field graphql.Coll
 		}
 		return graphql.Null
 	}
-	res := resTmp.(model2.CommitType)
+	res := resTmp.(model.CommitType)
 	fc.Result = res
-	return ec.marshalNCommitType2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCommitType(ctx, field.Selections, res)
+	return ec.marshalNCommitType2githubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐCommitType(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Commit_row(ctx context.Context, field graphql.CollectedField, obj *model2.Commit) (ret graphql.Marshaler) {
+func (ec *executionContext) _Commit_row(ctx context.Context, field graphql.CollectedField, obj *model.Commit) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1433,7 +1432,7 @@ func (ec *executionContext) _Commit_row(ctx context.Context, field graphql.Colle
 	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Commit_col(ctx context.Context, field graphql.CollectedField, obj *model2.Commit) (ret graphql.Marshaler) {
+func (ec *executionContext) _Commit_col(ctx context.Context, field graphql.CollectedField, obj *model.Commit) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1468,7 +1467,7 @@ func (ec *executionContext) _Commit_col(ctx context.Context, field graphql.Colle
 	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Commit_val(ctx context.Context, field graphql.CollectedField, obj *model2.Commit) (ret graphql.Marshaler) {
+func (ec *executionContext) _Commit_val(ctx context.Context, field graphql.CollectedField, obj *model.Commit) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1503,7 +1502,7 @@ func (ec *executionContext) _Commit_val(ctx context.Context, field graphql.Colle
 	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _JoinPayload_player(ctx context.Context, field graphql.CollectedField, obj *model2.JoinPayload) (ret graphql.Marshaler) {
+func (ec *executionContext) _JoinPayload_player(ctx context.Context, field graphql.CollectedField, obj *model.JoinPayload) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1530,12 +1529,12 @@ func (ec *executionContext) _JoinPayload_player(ctx context.Context, field graph
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*model2.Player)
+	res := resTmp.(*model.Player)
 	fc.Result = res
-	return ec.marshalOPlayer2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐPlayer(ctx, field.Selections, res)
+	return ec.marshalOPlayer2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐPlayer(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _MergeBranchPayload_sourceBranch(ctx context.Context, field graphql.CollectedField, obj *model2.MergeBranchPayload) (ret graphql.Marshaler) {
+func (ec *executionContext) _MergeBranchPayload_sourceBranch(ctx context.Context, field graphql.CollectedField, obj *model.MergeBranchPayload) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1562,9 +1561,9 @@ func (ec *executionContext) _MergeBranchPayload_sourceBranch(ctx context.Context
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*model2.Branch)
+	res := resTmp.(*model.Branch)
 	fc.Result = res
-	return ec.marshalOBranch2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐBranch(ctx, field.Selections, res)
+	return ec.marshalOBranch2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐBranch(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_addCommit(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1592,7 +1591,7 @@ func (ec *executionContext) _Mutation_addCommit(ctx context.Context, field graph
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().AddCommit(rctx, args["input"].(model2.AddCommitInput))
+		return ec.resolvers.Mutation().AddCommit(rctx, args["input"].(model.AddCommitInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1601,9 +1600,9 @@ func (ec *executionContext) _Mutation_addCommit(ctx context.Context, field graph
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*model2.AddCommitPayload)
+	res := resTmp.(*model.AddCommitPayload)
 	fc.Result = res
-	return ec.marshalOAddCommitPayload2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐAddCommitPayload(ctx, field.Selections, res)
+	return ec.marshalOAddCommitPayload2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐAddCommitPayload(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_addBranch(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1631,7 +1630,7 @@ func (ec *executionContext) _Mutation_addBranch(ctx context.Context, field graph
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().AddBranch(rctx, args["input"].(model2.AddBranchInput))
+		return ec.resolvers.Mutation().AddBranch(rctx, args["input"].(model.AddBranchInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1640,9 +1639,9 @@ func (ec *executionContext) _Mutation_addBranch(ctx context.Context, field graph
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*model2.AddBranchPayload)
+	res := resTmp.(*model.AddBranchPayload)
 	fc.Result = res
-	return ec.marshalOAddBranchPayload2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐAddBranchPayload(ctx, field.Selections, res)
+	return ec.marshalOAddBranchPayload2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐAddBranchPayload(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_mergeBranch(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1670,7 +1669,7 @@ func (ec *executionContext) _Mutation_mergeBranch(ctx context.Context, field gra
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().MergeBranch(rctx, args["input"].(model2.MergeBranchInput))
+		return ec.resolvers.Mutation().MergeBranch(rctx, args["input"].(model.MergeBranchInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1679,9 +1678,9 @@ func (ec *executionContext) _Mutation_mergeBranch(ctx context.Context, field gra
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*model2.MergeBranchPayload)
+	res := resTmp.(*model.MergeBranchPayload)
 	fc.Result = res
-	return ec.marshalOMergeBranchPayload2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐMergeBranchPayload(ctx, field.Selections, res)
+	return ec.marshalOMergeBranchPayload2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐMergeBranchPayload(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_join(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1711,12 +1710,12 @@ func (ec *executionContext) _Mutation_join(ctx context.Context, field graphql.Co
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*model2.JoinPayload)
+	res := resTmp.(*model.JoinPayload)
 	fc.Result = res
-	return ec.marshalOJoinPayload2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐJoinPayload(ctx, field.Selections, res)
+	return ec.marshalOJoinPayload2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐJoinPayload(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Player_id(ctx context.Context, field graphql.CollectedField, obj *model2.Player) (ret graphql.Marshaler) {
+func (ec *executionContext) _Player_id(ctx context.Context, field graphql.CollectedField, obj *model.Player) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1751,7 +1750,7 @@ func (ec *executionContext) _Player_id(ctx context.Context, field graphql.Collec
 	return ec.marshalNID2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Player_displayName(ctx context.Context, field graphql.CollectedField, obj *model2.Player) (ret graphql.Marshaler) {
+func (ec *executionContext) _Player_displayName(ctx context.Context, field graphql.CollectedField, obj *model.Player) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1816,9 +1815,9 @@ func (ec *executionContext) _Query_sudoku(ctx context.Context, field graphql.Col
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model2.Sudoku)
+	res := resTmp.(*model.Sudoku)
 	fc.Result = res
-	return ec.marshalNSudoku2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐSudoku(ctx, field.Selections, res)
+	return ec.marshalNSudoku2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐSudoku(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_branch(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1858,9 +1857,9 @@ func (ec *executionContext) _Query_branch(ctx context.Context, field graphql.Col
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model2.Branch)
+	res := resTmp.(*model.Branch)
 	fc.Result = res
-	return ec.marshalNBranch2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐBranch(ctx, field.Selections, res)
+	return ec.marshalNBranch2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐBranch(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_branches(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1893,9 +1892,9 @@ func (ec *executionContext) _Query_branches(ctx context.Context, field graphql.C
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model2.Branch)
+	res := resTmp.([]*model.Branch)
 	fc.Result = res
-	return ec.marshalNBranch2ᚕᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐBranchᚄ(ctx, field.Selections, res)
+	return ec.marshalNBranch2ᚕᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐBranchᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_commit(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1935,9 +1934,9 @@ func (ec *executionContext) _Query_commit(ctx context.Context, field graphql.Col
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model2.Commit)
+	res := resTmp.(*model.Commit)
 	fc.Result = res
-	return ec.marshalNCommit2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCommit(ctx, field.Selections, res)
+	return ec.marshalNCommit2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐCommit(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_players(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1970,9 +1969,9 @@ func (ec *executionContext) _Query_players(ctx context.Context, field graphql.Co
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model2.Player)
+	res := resTmp.([]*model.Player)
 	fc.Result = res
-	return ec.marshalNPlayer2ᚕᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐPlayerᚄ(ctx, field.Selections, res)
+	return ec.marshalNPlayer2ᚕᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐPlayerᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -2084,7 +2083,7 @@ func (ec *executionContext) _Subscription_commitAdded(ctx context.Context, field
 		return nil
 	}
 	return func() graphql.Marshaler {
-		res, ok := <-resTmp.(<-chan *model2.Commit)
+		res, ok := <-resTmp.(<-chan *model.Commit)
 		if !ok {
 			return nil
 		}
@@ -2092,13 +2091,13 @@ func (ec *executionContext) _Subscription_commitAdded(ctx context.Context, field
 			w.Write([]byte{'{'})
 			graphql.MarshalString(field.Alias).MarshalGQL(w)
 			w.Write([]byte{':'})
-			ec.marshalNCommit2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCommit(ctx, field.Selections, res).MarshalGQL(w)
+			ec.marshalNCommit2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐCommit(ctx, field.Selections, res).MarshalGQL(w)
 			w.Write([]byte{'}'})
 		})
 	}
 }
 
-func (ec *executionContext) _Sudoku_branchId(ctx context.Context, field graphql.CollectedField, obj *model2.Sudoku) (ret graphql.Marshaler) {
+func (ec *executionContext) _Sudoku_branchId(ctx context.Context, field graphql.CollectedField, obj *model.Sudoku) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2133,7 +2132,7 @@ func (ec *executionContext) _Sudoku_branchId(ctx context.Context, field graphql.
 	return ec.marshalNID2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Sudoku_branch(ctx context.Context, field graphql.CollectedField, obj *model2.Sudoku) (ret graphql.Marshaler) {
+func (ec *executionContext) _Sudoku_branch(ctx context.Context, field graphql.CollectedField, obj *model.Sudoku) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2163,12 +2162,12 @@ func (ec *executionContext) _Sudoku_branch(ctx context.Context, field graphql.Co
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model2.Branch)
+	res := resTmp.(*model.Branch)
 	fc.Result = res
-	return ec.marshalNBranch2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐBranch(ctx, field.Selections, res)
+	return ec.marshalNBranch2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐBranch(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Sudoku_board(ctx context.Context, field graphql.CollectedField, obj *model2.Sudoku) (ret graphql.Marshaler) {
+func (ec *executionContext) _Sudoku_board(ctx context.Context, field graphql.CollectedField, obj *model.Sudoku) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -3290,8 +3289,8 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 
 // region    **************************** input.gotpl *****************************
 
-func (ec *executionContext) unmarshalInputAddBranchInput(ctx context.Context, obj interface{}) (model2.AddBranchInput, error) {
-	var it model2.AddBranchInput
+func (ec *executionContext) unmarshalInputAddBranchInput(ctx context.Context, obj interface{}) (model.AddBranchInput, error) {
+	var it model.AddBranchInput
 	var asMap = obj.(map[string]interface{})
 
 	for k, v := range asMap {
@@ -3326,8 +3325,8 @@ func (ec *executionContext) unmarshalInputAddBranchInput(ctx context.Context, ob
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputAddCommitInput(ctx context.Context, obj interface{}) (model2.AddCommitInput, error) {
-	var it model2.AddCommitInput
+func (ec *executionContext) unmarshalInputAddCommitInput(ctx context.Context, obj interface{}) (model.AddCommitInput, error) {
+	var it model.AddCommitInput
 	var asMap = obj.(map[string]interface{})
 
 	for k, v := range asMap {
@@ -3344,7 +3343,7 @@ func (ec *executionContext) unmarshalInputAddCommitInput(ctx context.Context, ob
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("type"))
-			it.Type, err = ec.unmarshalNCommitType2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCommitType(ctx, v)
+			it.Type, err = ec.unmarshalNCommitType2githubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐCommitType(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -3378,8 +3377,8 @@ func (ec *executionContext) unmarshalInputAddCommitInput(ctx context.Context, ob
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputMergeBranchInput(ctx context.Context, obj interface{}) (model2.MergeBranchInput, error) {
-	var it model2.MergeBranchInput
+func (ec *executionContext) unmarshalInputMergeBranchInput(ctx context.Context, obj interface{}) (model.MergeBranchInput, error) {
+	var it model.MergeBranchInput
 	var asMap = obj.(map[string]interface{})
 
 	for k, v := range asMap {
@@ -3424,7 +3423,7 @@ func (ec *executionContext) unmarshalInputMergeBranchInput(ctx context.Context, 
 
 var addBranchPayloadImplementors = []string{"AddBranchPayload"}
 
-func (ec *executionContext) _AddBranchPayload(ctx context.Context, sel ast.SelectionSet, obj *model2.AddBranchPayload) graphql.Marshaler {
+func (ec *executionContext) _AddBranchPayload(ctx context.Context, sel ast.SelectionSet, obj *model.AddBranchPayload) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, addBranchPayloadImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -3448,7 +3447,7 @@ func (ec *executionContext) _AddBranchPayload(ctx context.Context, sel ast.Selec
 
 var addCommitPayloadImplementors = []string{"AddCommitPayload"}
 
-func (ec *executionContext) _AddCommitPayload(ctx context.Context, sel ast.SelectionSet, obj *model2.AddCommitPayload) graphql.Marshaler {
+func (ec *executionContext) _AddCommitPayload(ctx context.Context, sel ast.SelectionSet, obj *model.AddCommitPayload) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, addCommitPayloadImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -3472,7 +3471,7 @@ func (ec *executionContext) _AddCommitPayload(ctx context.Context, sel ast.Selec
 
 var blobImplementors = []string{"Blob"}
 
-func (ec *executionContext) _Blob(ctx context.Context, sel ast.SelectionSet, obj *model2.Blob) graphql.Marshaler {
+func (ec *executionContext) _Blob(ctx context.Context, sel ast.SelectionSet, obj *model.Blob) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, blobImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -3499,7 +3498,7 @@ func (ec *executionContext) _Blob(ctx context.Context, sel ast.SelectionSet, obj
 
 var branchImplementors = []string{"Branch"}
 
-func (ec *executionContext) _Branch(ctx context.Context, sel ast.SelectionSet, obj *model2.Branch) graphql.Marshaler {
+func (ec *executionContext) _Branch(ctx context.Context, sel ast.SelectionSet, obj *model.Branch) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, branchImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -3559,7 +3558,7 @@ func (ec *executionContext) _Branch(ctx context.Context, sel ast.SelectionSet, o
 
 var cellImplementors = []string{"Cell"}
 
-func (ec *executionContext) _Cell(ctx context.Context, sel ast.SelectionSet, obj *model2.Cell) graphql.Marshaler {
+func (ec *executionContext) _Cell(ctx context.Context, sel ast.SelectionSet, obj *model.Cell) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, cellImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -3596,7 +3595,7 @@ func (ec *executionContext) _Cell(ctx context.Context, sel ast.SelectionSet, obj
 
 var commitImplementors = []string{"Commit"}
 
-func (ec *executionContext) _Commit(ctx context.Context, sel ast.SelectionSet, obj *model2.Commit) graphql.Marshaler {
+func (ec *executionContext) _Commit(ctx context.Context, sel ast.SelectionSet, obj *model.Commit) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, commitImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -3686,7 +3685,7 @@ func (ec *executionContext) _Commit(ctx context.Context, sel ast.SelectionSet, o
 
 var joinPayloadImplementors = []string{"JoinPayload"}
 
-func (ec *executionContext) _JoinPayload(ctx context.Context, sel ast.SelectionSet, obj *model2.JoinPayload) graphql.Marshaler {
+func (ec *executionContext) _JoinPayload(ctx context.Context, sel ast.SelectionSet, obj *model.JoinPayload) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, joinPayloadImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -3710,7 +3709,7 @@ func (ec *executionContext) _JoinPayload(ctx context.Context, sel ast.SelectionS
 
 var mergeBranchPayloadImplementors = []string{"MergeBranchPayload"}
 
-func (ec *executionContext) _MergeBranchPayload(ctx context.Context, sel ast.SelectionSet, obj *model2.MergeBranchPayload) graphql.Marshaler {
+func (ec *executionContext) _MergeBranchPayload(ctx context.Context, sel ast.SelectionSet, obj *model.MergeBranchPayload) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, mergeBranchPayloadImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -3768,7 +3767,7 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 
 var playerImplementors = []string{"Player"}
 
-func (ec *executionContext) _Player(ctx context.Context, sel ast.SelectionSet, obj *model2.Player) graphql.Marshaler {
+func (ec *executionContext) _Player(ctx context.Context, sel ast.SelectionSet, obj *model.Player) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, playerImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -3920,7 +3919,7 @@ func (ec *executionContext) _Subscription(ctx context.Context, sel ast.Selection
 
 var sudokuImplementors = []string{"Sudoku"}
 
-func (ec *executionContext) _Sudoku(ctx context.Context, sel ast.SelectionSet, obj *model2.Sudoku) graphql.Marshaler {
+func (ec *executionContext) _Sudoku(ctx context.Context, sel ast.SelectionSet, obj *model.Sudoku) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, sudokuImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -4209,21 +4208,21 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 
 // region    ***************************** type.gotpl *****************************
 
-func (ec *executionContext) unmarshalNAddBranchInput2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐAddBranchInput(ctx context.Context, v interface{}) (model2.AddBranchInput, error) {
+func (ec *executionContext) unmarshalNAddBranchInput2githubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐAddBranchInput(ctx context.Context, v interface{}) (model.AddBranchInput, error) {
 	res, err := ec.unmarshalInputAddBranchInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNAddCommitInput2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐAddCommitInput(ctx context.Context, v interface{}) (model2.AddCommitInput, error) {
+func (ec *executionContext) unmarshalNAddCommitInput2githubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐAddCommitInput(ctx context.Context, v interface{}) (model.AddCommitInput, error) {
 	res, err := ec.unmarshalInputAddCommitInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNBlob2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐBlob(ctx context.Context, sel ast.SelectionSet, v model2.Blob) graphql.Marshaler {
+func (ec *executionContext) marshalNBlob2githubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐBlob(ctx context.Context, sel ast.SelectionSet, v model.Blob) graphql.Marshaler {
 	return ec._Blob(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNBlob2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐBlob(ctx context.Context, sel ast.SelectionSet, v *model2.Blob) graphql.Marshaler {
+func (ec *executionContext) marshalNBlob2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐBlob(ctx context.Context, sel ast.SelectionSet, v *model.Blob) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -4248,11 +4247,11 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
-func (ec *executionContext) marshalNBranch2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐBranch(ctx context.Context, sel ast.SelectionSet, v model2.Branch) graphql.Marshaler {
+func (ec *executionContext) marshalNBranch2githubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐBranch(ctx context.Context, sel ast.SelectionSet, v model.Branch) graphql.Marshaler {
 	return ec._Branch(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNBranch2ᚕᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐBranchᚄ(ctx context.Context, sel ast.SelectionSet, v []*model2.Branch) graphql.Marshaler {
+func (ec *executionContext) marshalNBranch2ᚕᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐBranchᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Branch) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -4276,7 +4275,7 @@ func (ec *executionContext) marshalNBranch2ᚕᚖgithubᚗcomᚋnhanᚑngᚋsudo
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNBranch2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐBranch(ctx, sel, v[i])
+			ret[i] = ec.marshalNBranch2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐBranch(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -4289,7 +4288,7 @@ func (ec *executionContext) marshalNBranch2ᚕᚖgithubᚗcomᚋnhanᚑngᚋsudo
 	return ret
 }
 
-func (ec *executionContext) marshalNBranch2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐBranch(ctx context.Context, sel ast.SelectionSet, v *model2.Branch) graphql.Marshaler {
+func (ec *executionContext) marshalNBranch2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐBranch(ctx context.Context, sel ast.SelectionSet, v *model.Branch) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -4299,11 +4298,11 @@ func (ec *executionContext) marshalNBranch2ᚖgithubᚗcomᚋnhanᚑngᚋsudoku�
 	return ec._Branch(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNCell2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCell(ctx context.Context, sel ast.SelectionSet, v model2.Cell) graphql.Marshaler {
+func (ec *executionContext) marshalNCell2githubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐCell(ctx context.Context, sel ast.SelectionSet, v model.Cell) graphql.Marshaler {
 	return ec._Cell(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNCell2ᚕgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCellᚄ(ctx context.Context, sel ast.SelectionSet, v []model2.Cell) graphql.Marshaler {
+func (ec *executionContext) marshalNCell2ᚕgithubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐCellᚄ(ctx context.Context, sel ast.SelectionSet, v []model.Cell) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -4327,7 +4326,7 @@ func (ec *executionContext) marshalNCell2ᚕgithubᚗcomᚋnhanᚑngᚋsudokuᚋ
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNCell2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCell(ctx, sel, v[i])
+			ret[i] = ec.marshalNCell2githubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐCell(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -4340,7 +4339,7 @@ func (ec *executionContext) marshalNCell2ᚕgithubᚗcomᚋnhanᚑngᚋsudokuᚋ
 	return ret
 }
 
-func (ec *executionContext) marshalNCell2ᚕᚕgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCellᚄ(ctx context.Context, sel ast.SelectionSet, v [][]model2.Cell) graphql.Marshaler {
+func (ec *executionContext) marshalNCell2ᚕᚕgithubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐCellᚄ(ctx context.Context, sel ast.SelectionSet, v [][]model.Cell) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -4364,7 +4363,7 @@ func (ec *executionContext) marshalNCell2ᚕᚕgithubᚗcomᚋnhanᚑngᚋsudoku
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNCell2ᚕgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCellᚄ(ctx, sel, v[i])
+			ret[i] = ec.marshalNCell2ᚕgithubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐCellᚄ(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -4377,11 +4376,11 @@ func (ec *executionContext) marshalNCell2ᚕᚕgithubᚗcomᚋnhanᚑngᚋsudoku
 	return ret
 }
 
-func (ec *executionContext) marshalNCommit2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCommit(ctx context.Context, sel ast.SelectionSet, v model2.Commit) graphql.Marshaler {
+func (ec *executionContext) marshalNCommit2githubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐCommit(ctx context.Context, sel ast.SelectionSet, v model.Commit) graphql.Marshaler {
 	return ec._Commit(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNCommit2ᚕᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCommitᚄ(ctx context.Context, sel ast.SelectionSet, v []*model2.Commit) graphql.Marshaler {
+func (ec *executionContext) marshalNCommit2ᚕᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐCommitᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Commit) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -4405,7 +4404,7 @@ func (ec *executionContext) marshalNCommit2ᚕᚖgithubᚗcomᚋnhanᚑngᚋsudo
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNCommit2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCommit(ctx, sel, v[i])
+			ret[i] = ec.marshalNCommit2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐCommit(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -4418,7 +4417,7 @@ func (ec *executionContext) marshalNCommit2ᚕᚖgithubᚗcomᚋnhanᚑngᚋsudo
 	return ret
 }
 
-func (ec *executionContext) marshalNCommit2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCommit(ctx context.Context, sel ast.SelectionSet, v *model2.Commit) graphql.Marshaler {
+func (ec *executionContext) marshalNCommit2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐCommit(ctx context.Context, sel ast.SelectionSet, v *model.Commit) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -4428,13 +4427,13 @@ func (ec *executionContext) marshalNCommit2ᚖgithubᚗcomᚋnhanᚑngᚋsudoku�
 	return ec._Commit(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNCommitType2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCommitType(ctx context.Context, v interface{}) (model2.CommitType, error) {
-	var res model2.CommitType
+func (ec *executionContext) unmarshalNCommitType2githubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐCommitType(ctx context.Context, v interface{}) (model.CommitType, error) {
+	var res model.CommitType
 	err := res.UnmarshalGQL(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNCommitType2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCommitType(ctx context.Context, sel ast.SelectionSet, v model2.CommitType) graphql.Marshaler {
+func (ec *executionContext) marshalNCommitType2githubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐCommitType(ctx context.Context, sel ast.SelectionSet, v model.CommitType) graphql.Marshaler {
 	return v
 }
 
@@ -4558,12 +4557,12 @@ func (ec *executionContext) marshalNInt2ᚕᚕintᚄ(ctx context.Context, sel as
 	return ret
 }
 
-func (ec *executionContext) unmarshalNMergeBranchInput2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐMergeBranchInput(ctx context.Context, v interface{}) (model2.MergeBranchInput, error) {
+func (ec *executionContext) unmarshalNMergeBranchInput2githubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐMergeBranchInput(ctx context.Context, v interface{}) (model.MergeBranchInput, error) {
 	res, err := ec.unmarshalInputMergeBranchInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNPlayer2ᚕᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐPlayerᚄ(ctx context.Context, sel ast.SelectionSet, v []*model2.Player) graphql.Marshaler {
+func (ec *executionContext) marshalNPlayer2ᚕᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐPlayerᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Player) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -4587,7 +4586,7 @@ func (ec *executionContext) marshalNPlayer2ᚕᚖgithubᚗcomᚋnhanᚑngᚋsudo
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNPlayer2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐPlayer(ctx, sel, v[i])
+			ret[i] = ec.marshalNPlayer2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐPlayer(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -4600,7 +4599,7 @@ func (ec *executionContext) marshalNPlayer2ᚕᚖgithubᚗcomᚋnhanᚑngᚋsudo
 	return ret
 }
 
-func (ec *executionContext) marshalNPlayer2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐPlayer(ctx context.Context, sel ast.SelectionSet, v *model2.Player) graphql.Marshaler {
+func (ec *executionContext) marshalNPlayer2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐPlayer(ctx context.Context, sel ast.SelectionSet, v *model.Player) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -4625,11 +4624,11 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 	return res
 }
 
-func (ec *executionContext) marshalNSudoku2githubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐSudoku(ctx context.Context, sel ast.SelectionSet, v model2.Sudoku) graphql.Marshaler {
+func (ec *executionContext) marshalNSudoku2githubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐSudoku(ctx context.Context, sel ast.SelectionSet, v model.Sudoku) graphql.Marshaler {
 	return ec._Sudoku(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNSudoku2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐSudoku(ctx context.Context, sel ast.SelectionSet, v *model2.Sudoku) graphql.Marshaler {
+func (ec *executionContext) marshalNSudoku2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐSudoku(ctx context.Context, sel ast.SelectionSet, v *model.Sudoku) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -4898,14 +4897,14 @@ func (ec *executionContext) marshalN__TypeKind2string(ctx context.Context, sel a
 	return res
 }
 
-func (ec *executionContext) marshalOAddBranchPayload2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐAddBranchPayload(ctx context.Context, sel ast.SelectionSet, v *model2.AddBranchPayload) graphql.Marshaler {
+func (ec *executionContext) marshalOAddBranchPayload2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐAddBranchPayload(ctx context.Context, sel ast.SelectionSet, v *model.AddBranchPayload) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._AddBranchPayload(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOAddCommitPayload2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐAddCommitPayload(ctx context.Context, sel ast.SelectionSet, v *model2.AddCommitPayload) graphql.Marshaler {
+func (ec *executionContext) marshalOAddCommitPayload2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐAddCommitPayload(ctx context.Context, sel ast.SelectionSet, v *model.AddCommitPayload) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -4936,14 +4935,14 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return graphql.MarshalBoolean(*v)
 }
 
-func (ec *executionContext) marshalOBranch2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐBranch(ctx context.Context, sel ast.SelectionSet, v *model2.Branch) graphql.Marshaler {
+func (ec *executionContext) marshalOBranch2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐBranch(ctx context.Context, sel ast.SelectionSet, v *model.Branch) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._Branch(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOCommit2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐCommit(ctx context.Context, sel ast.SelectionSet, v *model2.Commit) graphql.Marshaler {
+func (ec *executionContext) marshalOCommit2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐCommit(ctx context.Context, sel ast.SelectionSet, v *model.Commit) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -4965,21 +4964,21 @@ func (ec *executionContext) marshalOID2ᚖstring(ctx context.Context, sel ast.Se
 	return graphql.MarshalID(*v)
 }
 
-func (ec *executionContext) marshalOJoinPayload2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐJoinPayload(ctx context.Context, sel ast.SelectionSet, v *model2.JoinPayload) graphql.Marshaler {
+func (ec *executionContext) marshalOJoinPayload2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐJoinPayload(ctx context.Context, sel ast.SelectionSet, v *model.JoinPayload) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._JoinPayload(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOMergeBranchPayload2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐMergeBranchPayload(ctx context.Context, sel ast.SelectionSet, v *model2.MergeBranchPayload) graphql.Marshaler {
+func (ec *executionContext) marshalOMergeBranchPayload2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐMergeBranchPayload(ctx context.Context, sel ast.SelectionSet, v *model.MergeBranchPayload) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._MergeBranchPayload(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOPlayer2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋgraphᚋmodelᚐPlayer(ctx context.Context, sel ast.SelectionSet, v *model2.Player) graphql.Marshaler {
+func (ec *executionContext) marshalOPlayer2ᚖgithubᚗcomᚋnhanᚑngᚋsudokuᚋinternalᚋcmdᚋgameserverᚋgraphᚋmodelᚐPlayer(ctx context.Context, sel ast.SelectionSet, v *model.Player) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
