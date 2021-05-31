@@ -3,6 +3,7 @@ import {
   Box,
   Container,
   CssBaseline,
+  Link as MuiLink,
   Typography,
 } from "@material-ui/core";
 import React from "react";
@@ -19,6 +20,7 @@ import {
   Switch,
   Route,
   Redirect,
+  Link,
 } from "react-router-dom";
 import { Lobby } from "components/Lobby";
 import { Home } from "components/Home";
@@ -44,8 +46,6 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const defaultEncodedGameServerAddress = "bG9jYWxob3N0Ojk5OTkvZ3JhcGhxbA=="; // localhost:9999/graphql
-
 // Routes
 
 export const App: React.FC = () => {
@@ -55,22 +55,29 @@ export const App: React.FC = () => {
     <div className={classes.root}>
       <CssBaseline />
       <ThemeProvider theme={theme}>
-        <AppBar position="absolute">
-          <Box m={1}>
-            <Typography
-              variant="h6"
-              component="h1"
-              color="inherit"
-              className={classes.title}
-            >
-              Gitdoku
-            </Typography>
-          </Box>
-        </AppBar>
-        <main className={classes.content}>
-          <div className={classes.appBarSpacer} />
-          <Container maxWidth="md" className={classes.container}>
-            <Router>
+        <Router>
+          <AppBar position="absolute">
+            <Box m={1}>
+              <Typography
+                variant="h6"
+                component="h1"
+                color="inherit"
+                className={classes.title}
+              >
+                <MuiLink
+                  color="secondary"
+                  underline="none"
+                  component={Link}
+                  to="/"
+                >
+                  Gitdoku
+                </MuiLink>
+              </Typography>
+            </Box>
+          </AppBar>
+          <main className={classes.content}>
+            <div className={classes.appBarSpacer} />
+            <Container maxWidth="md" className={classes.container}>
               <Switch>
                 <Route exact path="/">
                   <Home />
@@ -79,9 +86,9 @@ export const App: React.FC = () => {
                   <Lobby />
                 </Route>
               </Switch>
-            </Router>
-          </Container>
-        </main>
+            </Container>
+          </main>
+        </Router>
       </ThemeProvider>
     </div>
   );
