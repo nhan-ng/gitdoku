@@ -31,8 +31,7 @@ const useStyles = makeStyles<Theme, StyledProps>((theme: Theme) =>
     },
     table: {
       borderRadius: theme.shape.borderRadius,
-      borderStyle: "solid",
-      borderColor: theme.palette.primary.light,
+      border: `4px solid ${theme.palette.primary.dark}`,
       borderCollapse: "collapse",
     },
     scaled: {
@@ -40,7 +39,7 @@ const useStyles = makeStyles<Theme, StyledProps>((theme: Theme) =>
     },
     row: {
       "&:nth-child(3n)": {
-        borderBottom: `2px solid ${theme.palette.primary.light}`,
+        borderBottom: `3px solid ${theme.palette.primary.dark}`,
       },
     },
   })

@@ -36,6 +36,7 @@
     "start": "react-scripts start",
     "test": "react-scripts test"
   },
+  "proxy": "http://localhost:9998",
   "eslintConfig": {
     "extends": [
       "react-app",

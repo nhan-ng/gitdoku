@@ -1,5 +1,4 @@
 schema:
-  - http://localhost:9998/graphql # Coordinator API
   - http://localhost:9999/graphql # GameServer API
 documents:
   - ./src/**/*.graphql

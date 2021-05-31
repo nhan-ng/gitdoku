@@ -21,7 +21,7 @@ import {
   Redirect,
 } from "react-router-dom";
 import { Lobby } from "components/Lobby";
-import { newClient } from "graphql";
+import { Home } from "components/Home";
 
 const theme = createMuiTheme({});
 
@@ -73,14 +73,7 @@ export const App: React.FC = () => {
             <Router>
               <Switch>
                 <Route exact path="/">
-                  <ApolloProvider
-                    client={newClient({ address: "localhost:9998/graphql" })}
-                  >
-                    <Redirect
-                      push
-                      to={`/l/${defaultEncodedGameServerAddress}`}
-                    />
-                  </ApolloProvider>
+                  <Home />
                 </Route>
                 <Route path="/l/:id">
                   <Lobby />

@@ -1,24 +1,18 @@
 package coordinator
 
 import (
-	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/base64"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
-
-	"github.com/nhan-ng/sudoku/internal/cmd/coordinator/graph"
-	"github.com/nhan-ng/sudoku/internal/cmd/coordinator/graph/generated"
+	"time"
 
 	pb "agones.dev/agones/pkg/allocation/go"
-	"github.com/99designs/gqlgen/graphql/handler"
-	"github.com/99designs/gqlgen/graphql/handler/extension"
-	"github.com/99designs/gqlgen/graphql/handler/transport"
-	"github.com/99designs/gqlgen/graphql/playground"
-	"github.com/rs/cors"
+	ginzap "github.com/gin-contrib/zap"
+	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -46,28 +40,32 @@ func Serve(opts ServeOptions) error {
 	if err != nil {
 		return fmt.Errorf("failed to initialize a new Agones client: %w", err)
 	}
+	logger := zap.L()
 
-	resolver, err := graph.NewResolver(agonesClient)
-	if closer, ok := resolver.Resolvers.(io.Closer); ok {
-		defer closer.Close()
-	}
-	if err != nil {
-		return fmt.Errorf("failed to create a GraphQL resolver: %w", err)
-	}
+	router := gin.Default()
 
-	h := handler.New(generated.NewExecutableSchema(*resolver))
-	h.SetRecoverFunc(func(ctx context.Context, err interface{}) (userMessage error) {
-		zap.L().Error("Panic error when processing GraphQL.", zap.Any("error", err))
-		return ErrDefaultGraphQL
+	router.Use(ginzap.Ginzap(logger, time.RFC3339, false))
+	router.Use(ginzap.RecoveryWithZap(logger, true))
+	router.Static("/", "./ui/build")
+
+	router.POST("/", func(c *gin.Context) {
+		response, err := agonesClient.Allocate(c, &pb.AllocationRequest{
+			Namespace: "default",
+		})
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+
+		// Address
+		address := fmt.Sprintf("%s:%d/graphql", response.Address, response.Ports[0].Port)
+		gameID := base64.StdEncoding.EncodeToString([]byte(address))
+
+		logger.Info("Created game server.", zap.String("address", address), zap.String("gameId", gameID))
+
+		c.JSON(http.StatusOK, gin.H{"gameId": gameID})
 	})
-	h.AddTransport(transport.POST{})
-	h.Use(extension.Introspection{})
 
-	http.Handle("/", playground.Handler("Sudoku", "/graphql"))
-	http.Handle("/graphql", cors.AllowAll().Handler(h))
-
-	zap.L().Info("Serving coordinator service", zap.Int("port", opts.Port))
-	return http.ListenAndServe(fmt.Sprintf(":%d", opts.Port), nil)
+	return router.Run(fmt.Sprintf(":%d", opts.Port))
 }
 
 func newAllocationServiceClient(opts ServeOptions) (pb.AllocationServiceClient, error) {

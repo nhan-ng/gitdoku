@@ -1,7 +1,7 @@
 import { ApolloProvider } from "@apollo/client";
 import { Game } from "components/Game";
 import { LobbyContextProvider } from "contexts";
-import { newClient } from "graphql";
+import { newClient } from "graphql/client";
 import React, { useMemo } from "react";
 import { useParams } from "react-router-dom";
 

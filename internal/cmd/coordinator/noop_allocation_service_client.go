@@ -21,7 +21,7 @@ func (n *NoopAllocationService) Allocate(ctx context.Context, in *pb.AllocationR
 		Ports: []*pb.AllocationResponse_GameServerStatusPort{
 			{
 				Name: "default",
-				Port: 10000,
+				Port: 9999,
 			},
 		},
 		Address:  "localhost",

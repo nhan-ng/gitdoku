@@ -5,6 +5,9 @@ go 1.15
 require (
 	agones.dev/agones v1.14.0
 	github.com/99designs/gqlgen v0.13.0
+	github.com/gin-contrib/static v0.0.1
+	github.com/gin-contrib/zap v0.0.1
+	github.com/gin-gonic/gin v1.7.2
 	github.com/go-git/go-billy/v5 v5.1.0
 	github.com/go-git/go-git/v5 v5.3.0
 	github.com/google/uuid v1.2.0

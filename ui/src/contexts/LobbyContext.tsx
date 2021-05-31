@@ -36,7 +36,10 @@ export const LobbyContextProvider: React.FC<LobbyContextProviderProps> = ({
     return <LinearProgress />;
   }
 
-  const player = data.join.player;
+  const player = data.join?.player;
+  if (!player) {
+    return <LinearProgress />;
+  }
 
   return (
     <LobbyContext.Provider value={{ id, player }}>

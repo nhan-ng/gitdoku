@@ -44,9 +44,7 @@ const useStyles = makeStyles<Theme, StyledProps>((theme: Theme) =>
           ? theme.palette.grey.A200
           : "transparent",
       "&:nth-child(3n)": {
-        borderRightWidth: "2px",
-        borderStyleRight: "solid",
-        borderColorRight: theme.palette.primary.light,
+        borderRight: `3px solid ${theme.palette.primary.dark}`,
       },
     },
   })
