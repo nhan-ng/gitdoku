@@ -1,9 +1,16 @@
 package gqlerrors
 
-import "github.com/vektah/gqlparser/v2/gqlerror"
+import (
+	"github.com/nhan-ng/sudoku/internal/cmd/gameserver/graph/model"
+	"github.com/vektah/gqlparser/v2/gqlerror"
+)
 
 func ErrInvalidInputCoordinate() error {
 	return gqlerror.Errorf("invalid input coordinate")
+}
+
+func ErrInvalidInputValue() error {
+	return gqlerror.Errorf("invalid input value")
 }
 
 func ErrCommitNotFound(id string) error {
@@ -24,4 +31,8 @@ func ErrBranchObserverAlreadyExists(observerID, BranchID string) error {
 
 func ErrBranchAlreadyExists(BranchID string) error {
 	return gqlerror.Errorf("branch with id '%s' already exists", BranchID)
+}
+
+func ErrInvalidInputCommitType(commitType model.CommitType) error {
+	return gqlerror.Errorf("invalid commit type '%s'", commitType)
 }

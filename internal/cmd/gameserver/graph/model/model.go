@@ -10,9 +10,9 @@ type Commit struct {
 	ID              string     `json:"id"`
 	ParentIDs       []string   `json:"parentIds"`
 	Type            CommitType `json:"type"`
-	Row             int        `json:"row"`
-	Col             int        `json:"col"`
-	Val             int        `json:"val"`
+	Row             *int       `json:"row"`
+	Col             *int       `json:"col"`
+	Val             *int       `json:"val"`
 	AuthorID        string     `json:"authorId"`
 	AuthorTimestamp time.Time  `json:"authorTimestamp"`
 }

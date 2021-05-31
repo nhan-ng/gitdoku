@@ -12,21 +12,21 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/google/uuid"
-	generated2 "github.com/nhan-ng/sudoku/internal/cmd/gameserver/graph/generated"
-	gqlerrors2 "github.com/nhan-ng/sudoku/internal/cmd/gameserver/graph/gqlerrors"
-	model2 "github.com/nhan-ng/sudoku/internal/cmd/gameserver/graph/model"
+	"github.com/nhan-ng/sudoku/internal/cmd/gameserver/graph/generated"
+	"github.com/nhan-ng/sudoku/internal/cmd/gameserver/graph/gqlerrors"
+	"github.com/nhan-ng/sudoku/internal/cmd/gameserver/graph/model"
 	"github.com/nhan-ng/sudoku/internal/cmd/gameserver/middleware"
 	"github.com/nhan-ng/sudoku/internal/namesgenerator"
 	"go.uber.org/zap"
 )
 
-func (r *branchResolver) Commit(ctx context.Context, obj *model2.Branch) (*model2.Commit, error) {
+func (r *branchResolver) Commit(ctx context.Context, obj *model.Branch) (*model.Commit, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
 	commit, err := r.repo.CommitObject(plumbing.NewHash(obj.CommitID))
 	if err != nil {
-		return nil, gqlerrors2.ErrCommitNotFound(obj.CommitID)
+		return nil, gqlerrors.ErrCommitNotFound(obj.CommitID)
 	}
 
 	result, err := ConvertCommit(commit)
@@ -37,7 +37,7 @@ func (r *branchResolver) Commit(ctx context.Context, obj *model2.Branch) (*model
 	return result, nil
 }
 
-func (r *branchResolver) Commits(ctx context.Context, obj *model2.Branch) ([]*model2.Commit, error) {
+func (r *branchResolver) Commits(ctx context.Context, obj *model.Branch) ([]*model.Commit, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -48,7 +48,7 @@ func (r *branchResolver) Commits(ctx context.Context, obj *model2.Branch) ([]*mo
 		return nil, fmt.Errorf("failed to get all commits: %w", err)
 	}
 
-	result := make([]*model2.Commit, 0)
+	result := make([]*model.Commit, 0)
 	err = commits.ForEach(func(c *object.Commit) error {
 		commit, err := ConvertCommit(c)
 		if err != nil {
@@ -64,15 +64,15 @@ func (r *branchResolver) Commits(ctx context.Context, obj *model2.Branch) ([]*mo
 	return result, nil
 }
 
-func (r *commitResolver) Parents(ctx context.Context, obj *model2.Commit) ([]*model2.Commit, error) {
+func (r *commitResolver) Parents(ctx context.Context, obj *model.Commit) ([]*model.Commit, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	result := make([]*model2.Commit, 0, len(obj.ParentIDs))
+	result := make([]*model.Commit, 0, len(obj.ParentIDs))
 	for _, parentID := range obj.ParentIDs {
 		parentCommit, err := r.repo.CommitObject(plumbing.NewHash(parentID))
 		if err != nil {
-			return nil, gqlerrors2.ErrCommitNotFound(parentID)
+			return nil, gqlerrors.ErrCommitNotFound(parentID)
 		}
 		c, err := ConvertCommit(parentCommit)
 		if err != nil {
@@ -84,7 +84,7 @@ func (r *commitResolver) Parents(ctx context.Context, obj *model2.Commit) ([]*mo
 	return result, nil
 }
 
-func (r *commitResolver) Blob(ctx context.Context, obj *model2.Commit) (*model2.Blob, error) {
+func (r *commitResolver) Blob(ctx context.Context, obj *model.Commit) (*model.Blob, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -101,16 +101,30 @@ func (r *commitResolver) Blob(ctx context.Context, obj *model2.Commit) (*model2.
 	return ConvertBlob(board), nil
 }
 
-func (r *mutationResolver) AddCommit(ctx context.Context, input model2.AddCommitInput) (*model2.AddCommitPayload, error) {
+func (r *mutationResolver) AddCommit(ctx context.Context, input model.AddCommitInput) (*model.AddCommitPayload, error) {
 	// Validate
-	if input.Row < 0 || input.Row >= 9 {
-		return nil, gqlerrors2.ErrInvalidInputCoordinate()
+	switch input.Type {
+	case model.CommitTypeAddFill, model.CommitTypeRemoveFill, model.CommitTypeToggleNote:
+		if input.Row < 0 || input.Row >= 9 {
+			return nil, gqlerrors.ErrInvalidInputCoordinate()
+		}
+		if input.Col < 0 || input.Col >= 9 {
+			return nil, gqlerrors.ErrInvalidInputCoordinate()
+		}
+		if r.sudoku.HasConflictWithFixedBoard(input.Row, input.Col) {
+			return nil, gqlerrors.ErrInvalidInputCoordinate()
+		}
+
+	case model.CommitTypeUnknown, model.CommitTypeInitial, model.CommitTypeMerge:
+		return nil, gqlerrors.ErrInvalidInputCommitType(input.Type)
 	}
-	if input.Col < 0 || input.Col >= 9 {
-		return nil, gqlerrors2.ErrInvalidInputCoordinate()
-	}
-	if r.sudoku.HasConflictWithFixedBoard(input.Row, input.Col) {
-		return nil, gqlerrors2.ErrInvalidInputCoordinate()
+
+	// Validate value type if applicable
+	switch input.Type {
+	case model.CommitTypeAddFill, model.CommitTypeToggleNote:
+		if input.Val == nil || *input.Val < 0 || *input.Val >= 9 {
+			return nil, gqlerrors.ErrInvalidInputValue()
+		}
 	}
 
 	// Create a commit
@@ -126,7 +140,7 @@ func (r *mutationResolver) AddCommit(ctx context.Context, input model2.AddCommit
 	// Verify the branch
 	ref, err := r.repo.Reference(plumbing.NewBranchReferenceName(input.BranchID), false)
 	if err != nil {
-		return nil, gqlerrors2.ErrBranchNotFound(input.BranchID)
+		return nil, gqlerrors.ErrBranchNotFound(input.BranchID)
 	}
 
 	// Create a commit
@@ -151,18 +165,20 @@ func (r *mutationResolver) AddCommit(ctx context.Context, input model2.AddCommit
 	}
 
 	cell := &board[input.Row][input.Col]
+	var commitMessage string
 	switch input.Type {
-	case model2.CommitTypeAddFill:
-		cell.Value = input.Val
+	case model.CommitTypeAddFill:
+		cell.Value = *input.Val
+		commitMessage = fmt.Sprintf("%s %d %d %d", input.Type, input.Row, input.Col, *input.Val)
 
-	case model2.CommitTypeRemoveFill:
+	case model.CommitTypeToggleNote:
+		cell.Notes[*input.Val-1] = !cell.Notes[*input.Val-1]
+		commitMessage = fmt.Sprintf("%s %d %d %d", input.Type, input.Row, input.Col, *input.Val)
+
+	case model.CommitTypeRemoveFill:
 		cell.Value = 0
-
-	case model2.CommitTypeToggleNote:
-		cell.Notes[input.Val-1] = !cell.Notes[input.Val-1]
+		commitMessage = fmt.Sprintf("%s %d %d", input.Type, input.Row, input.Col)
 	}
-
-	commitMessage := fmt.Sprintf("%s %d %d %d", input.Type, input.Row, input.Col, input.Val)
 
 	// Commit the change
 	c, err := r.CommitBoard(wt, board, commitMessage, player)
@@ -177,23 +193,23 @@ func (r *mutationResolver) AddCommit(ctx context.Context, input model2.AddCommit
 	// Broadcast the change
 	r.NotifyObservers(input.BranchID, commit)
 
-	return &model2.AddCommitPayload{
+	return &model.AddCommitPayload{
 		Commit: commit,
 	}, nil
 }
 
-func (r *mutationResolver) AddBranch(ctx context.Context, input model2.AddBranchInput) (*model2.AddBranchPayload, error) {
+func (r *mutationResolver) AddBranch(ctx context.Context, input model.AddBranchInput) (*model.AddBranchPayload, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	_, err := r.repo.Reference(plumbing.NewBranchReferenceName(input.ID), false)
 	if err == nil {
-		return nil, gqlerrors2.ErrBranchAlreadyExists(input.ID)
+		return nil, gqlerrors.ErrBranchAlreadyExists(input.ID)
 	}
 
 	// Validate that both arguments can't be specified
 	if input.CommitID == nil && input.BranchID == nil {
-		return nil, gqlerrors2.ErrInvalidInputCoordinate()
+		return nil, gqlerrors.ErrInvalidInputCoordinate()
 	}
 
 	// Determine which argument to use
@@ -203,7 +219,7 @@ func (r *mutationResolver) AddBranch(ctx context.Context, input model2.AddBranch
 	} else {
 		ref, err := r.repo.Reference(plumbing.NewBranchReferenceName(*input.BranchID), false)
 		if err != nil {
-			return nil, gqlerrors2.ErrBranchNotFound(*input.BranchID)
+			return nil, gqlerrors.ErrBranchNotFound(*input.BranchID)
 		}
 		commitID = ref.Hash()
 	}
@@ -211,7 +227,7 @@ func (r *mutationResolver) AddBranch(ctx context.Context, input model2.AddBranch
 	// Check if the commit exists
 	_, err = r.repo.CommitObject(commitID)
 	if err != nil {
-		return nil, gqlerrors2.ErrCommitNotFound(commitID.String())
+		return nil, gqlerrors.ErrCommitNotFound(commitID.String())
 	}
 
 	newRef := plumbing.NewHashReference(plumbing.NewBranchReferenceName(input.ID), commitID)
@@ -220,12 +236,12 @@ func (r *mutationResolver) AddBranch(ctx context.Context, input model2.AddBranch
 		return nil, fmt.Errorf("failed to create a new branch: %w", err)
 	}
 
-	return &model2.AddBranchPayload{
+	return &model.AddBranchPayload{
 		Branch: ConvertBranch(newRef),
 	}, nil
 }
 
-func (r *mutationResolver) MergeBranch(ctx context.Context, input model2.MergeBranchInput) (*model2.MergeBranchPayload, error) {
+func (r *mutationResolver) MergeBranch(ctx context.Context, input model.MergeBranchInput) (*model.MergeBranchPayload, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -238,11 +254,11 @@ func (r *mutationResolver) MergeBranch(ctx context.Context, input model2.MergeBr
 	// Get source
 	sourceRef, err := r.repo.Reference(plumbing.NewBranchReferenceName(input.SourceBranchID), false)
 	if err != nil {
-		return nil, gqlerrors2.ErrBranchNotFound(input.SourceBranchID)
+		return nil, gqlerrors.ErrBranchNotFound(input.SourceBranchID)
 	}
 	sourceCommit, err := r.repo.CommitObject(sourceRef.Hash())
 	if err != nil {
-		return nil, gqlerrors2.ErrCommitNotFound(sourceRef.Hash().String())
+		return nil, gqlerrors.ErrCommitNotFound(sourceRef.Hash().String())
 	}
 
 	// Get target
@@ -252,7 +268,7 @@ func (r *mutationResolver) MergeBranch(ctx context.Context, input model2.MergeBr
 	}
 	targetCommit, err := r.repo.CommitObject(targetRef.Hash())
 	if err != nil {
-		return nil, gqlerrors2.ErrCommitNotFound(targetRef.Hash().String())
+		return nil, gqlerrors.ErrCommitNotFound(targetRef.Hash().String())
 	}
 
 	bases, err := sourceCommit.MergeBase(targetCommit)
@@ -276,7 +292,7 @@ func (r *mutationResolver) MergeBranch(ctx context.Context, input model2.MergeBr
 		newRef := plumbing.NewHashReference(sourceRef.Name(), targetCommit.Hash)
 		r.repo.Storer.SetReference(newRef)
 
-		return &model2.MergeBranchPayload{
+		return &model.MergeBranchPayload{
 			SourceBranch: ConvertBranch(newRef),
 		}, nil
 	}
@@ -365,10 +381,10 @@ func (r *mutationResolver) MergeBranch(ctx context.Context, input model2.MergeBr
 	}
 
 	// Not support other form of merging yet :(
-	return &model2.MergeBranchPayload{SourceBranch: ConvertBranch(sourceRef)}, nil
+	return &model.MergeBranchPayload{SourceBranch: ConvertBranch(sourceRef)}, nil
 }
 
-func (r *mutationResolver) Join(ctx context.Context) (*model2.JoinPayload, error) {
+func (r *mutationResolver) Join(ctx context.Context) (*model.JoinPayload, error) {
 	// Get the IP address from the request
 	ip, err := middleware.ForContext(ctx)
 	if err != nil {
@@ -381,39 +397,39 @@ func (r *mutationResolver) Join(ctx context.Context) (*model2.JoinPayload, error
 	// Return the player if already used
 	player, exist := r.players[ip]
 	if exist {
-		return &model2.JoinPayload{Player: player}, nil
+		return &model.JoinPayload{Player: player}, nil
 	}
 
 	// Otherwise add a new player
 	newPlayerName := namesgenerator.GetUniqueRandomName(r.playerNames)
-	newPlayer := &model2.Player{
+	newPlayer := &model.Player{
 		ID:          uuid.NewString(),
 		DisplayName: newPlayerName,
 	}
 	r.playerNames[newPlayerName] = struct{}{}
 	r.players[ip] = newPlayer
 
-	return &model2.JoinPayload{Player: newPlayer}, nil
+	return &model.JoinPayload{Player: newPlayer}, nil
 }
 
-func (r *queryResolver) Sudoku(ctx context.Context) (*model2.Sudoku, error) {
+func (r *queryResolver) Sudoku(ctx context.Context) (*model.Sudoku, error) {
 	return r.sudoku, nil
 }
 
-func (r *queryResolver) Branch(ctx context.Context, id string) (*model2.Branch, error) {
+func (r *queryResolver) Branch(ctx context.Context, id string) (*model.Branch, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
 	ref, err := r.repo.Reference(plumbing.NewBranchReferenceName(id), false)
 	if err != nil {
-		return nil, gqlerrors2.ErrBranchNotFound(id)
+		return nil, gqlerrors.ErrBranchNotFound(id)
 	}
 	zap.L().Info("Reference(resolved:false)", zap.Any("ref", ref))
 
 	return ConvertBranch(ref), nil
 }
 
-func (r *queryResolver) Branches(ctx context.Context) ([]*model2.Branch, error) {
+func (r *queryResolver) Branches(ctx context.Context) ([]*model.Branch, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -422,7 +438,7 @@ func (r *queryResolver) Branches(ctx context.Context) ([]*model2.Branch, error) 
 		return nil, fmt.Errorf("failed to read branches: %w", err)
 	}
 
-	branches := make([]*model2.Branch, 0)
+	branches := make([]*model.Branch, 0)
 	err = refs.ForEach(func(ref *plumbing.Reference) error {
 		branches = append(branches, ConvertBranch(ref))
 		return nil
@@ -434,14 +450,14 @@ func (r *queryResolver) Branches(ctx context.Context) ([]*model2.Branch, error) 
 	return branches, nil
 }
 
-func (r *queryResolver) Commit(ctx context.Context, id string) (*model2.Commit, error) {
+func (r *queryResolver) Commit(ctx context.Context, id string) (*model.Commit, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
 	commit, err := r.repo.CommitObject(plumbing.NewHash(id))
 	if err != nil {
 		r.Error("Failed to get commit.", zap.Error(err))
-		return nil, gqlerrors2.ErrCommitNotFound(id)
+		return nil, gqlerrors.ErrCommitNotFound(id)
 	}
 
 	result, err := ConvertCommit(commit)
@@ -452,11 +468,11 @@ func (r *queryResolver) Commit(ctx context.Context, id string) (*model2.Commit, 
 	return result, nil
 }
 
-func (r *queryResolver) Players(ctx context.Context) ([]*model2.Player, error) {
+func (r *queryResolver) Players(ctx context.Context) ([]*model.Player, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	result := make([]*model2.Player, 0, len(r.players))
+	result := make([]*model.Player, 0, len(r.players))
 	for _, player := range r.players {
 		result = append(result, player)
 	}
@@ -464,7 +480,7 @@ func (r *queryResolver) Players(ctx context.Context) ([]*model2.Player, error) {
 	return result, nil
 }
 
-func (r *subscriptionResolver) CommitAdded(ctx context.Context, branchID string) (<-chan *model2.Commit, error) {
+func (r *subscriptionResolver) CommitAdded(ctx context.Context, branchID string) (<-chan *model.Commit, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -484,35 +500,35 @@ func (r *subscriptionResolver) CommitAdded(ctx context.Context, branchID string)
 	return commitsChan, nil
 }
 
-func (r *sudokuResolver) Branch(ctx context.Context, obj *model2.Sudoku) (*model2.Branch, error) {
+func (r *sudokuResolver) Branch(ctx context.Context, obj *model.Sudoku) (*model.Branch, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
 	ref, err := r.repo.Reference(plumbing.NewBranchReferenceName(obj.BranchID), false)
 	if err != nil {
-		return nil, gqlerrors2.ErrBranchNotFound(obj.BranchID)
+		return nil, gqlerrors.ErrBranchNotFound(obj.BranchID)
 	}
 
 	return ConvertBranch(ref), nil
 }
 
-// Branch returns generated2.BranchResolver implementation.
-func (r *Resolver) Branch() generated2.BranchResolver { return &branchResolver{r} }
+// Branch returns generated.BranchResolver implementation.
+func (r *Resolver) Branch() generated.BranchResolver { return &branchResolver{r} }
 
-// Commit returns generated2.CommitResolver implementation.
-func (r *Resolver) Commit() generated2.CommitResolver { return &commitResolver{r} }
+// Commit returns generated.CommitResolver implementation.
+func (r *Resolver) Commit() generated.CommitResolver { return &commitResolver{r} }
 
-// Mutation returns generated2.MutationResolver implementation.
-func (r *Resolver) Mutation() generated2.MutationResolver { return &mutationResolver{r} }
+// Mutation returns generated.MutationResolver implementation.
+func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
-// Query returns generated2.QueryResolver implementation.
-func (r *Resolver) Query() generated2.QueryResolver { return &queryResolver{r} }
+// Query returns generated.QueryResolver implementation.
+func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
-// Subscription returns generated2.SubscriptionResolver implementation.
-func (r *Resolver) Subscription() generated2.SubscriptionResolver { return &subscriptionResolver{r} }
+// Subscription returns generated.SubscriptionResolver implementation.
+func (r *Resolver) Subscription() generated.SubscriptionResolver { return &subscriptionResolver{r} }
 
-// Sudoku returns generated2.SudokuResolver implementation.
-func (r *Resolver) Sudoku() generated2.SudokuResolver { return &sudokuResolver{r} }
+// Sudoku returns generated.SudokuResolver implementation.
+func (r *Resolver) Sudoku() generated.SudokuResolver { return &sudokuResolver{r} }
 
 type branchResolver struct{ *Resolver }
 type commitResolver struct{ *Resolver }

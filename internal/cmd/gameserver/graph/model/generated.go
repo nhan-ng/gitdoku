@@ -23,7 +23,7 @@ type AddCommitInput struct {
 	Type     CommitType `json:"type"`
 	Row      int        `json:"row"`
 	Col      int        `json:"col"`
-	Val      int        `json:"val"`
+	Val      *int       `json:"val"`
 }
 
 type AddCommitPayload struct {

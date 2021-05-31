@@ -1,8 +1,10 @@
 import { History, SudokuBoard } from ".";
 import {
+  CommitType,
   OnCommitAddedDocument,
   OnCommitAddedSubscription,
   OnCommitAddedSubscriptionVariables,
+  useAddCommitMutation,
   useGetFullBranchQuery,
 } from "__generated__/types";
 import React, { useEffect } from "react";
@@ -56,7 +58,7 @@ type SudokuProps = {
 
 const SudokuComponent: React.FC = () => {
   const {
-    state: { branchId, inputMode },
+    state: { branchId, inputMode, selectedCell },
     dispatch,
   } = useSudokuContext();
 
@@ -66,6 +68,8 @@ const SudokuComponent: React.FC = () => {
       id: branchId,
     },
   });
+
+  const [addCommit, addCommitMutation] = useAddCommitMutation();
 
   useEffect(() => {
     console.log("BranchId", branchId);
@@ -100,6 +104,28 @@ const SudokuComponent: React.FC = () => {
   }, [subscribeToMore, branchId]);
 
   const toggleInputMode = () => dispatch({ type: "TOGGLE_INPUT_MODE" });
+  const removeCell = async (event: React.SyntheticEvent) => {
+    event.preventDefault();
+    if (!selectedCell) {
+      return;
+    }
+
+    try {
+      await addCommit({
+        variables: {
+          input: {
+            type: CommitType.RemoveFill,
+            branchId: branchId,
+            row: selectedCell.row,
+            col: selectedCell.col,
+          },
+        },
+      });
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
   const isFillInputMode = inputMode === "fill";
 
   if (loading) {
@@ -133,7 +159,7 @@ const SudokuComponent: React.FC = () => {
               <Typography variant="h5">{branchId}</Typography>
             </Grid>
           </Grid>
-          <SudokuBoard board={board} />
+          <SudokuBoard board={board} loading={addCommitMutation.loading} />
         </Grid>
         <Grid item md={4}>
           <Fab
@@ -142,7 +168,7 @@ const SudokuComponent: React.FC = () => {
           >
             {isFillInputMode ? <EditIcon /> : <NoteIcon />}
           </Fab>
-          <Fab color="secondary" onClick={toggleInputMode}>
+          <Fab color="secondary" onClick={removeCell}>
             <ClearIcon />
           </Fab>
           <History commits={commits} />

@@ -49,6 +49,7 @@ export type SudokuBoardProps = {
   scale?: number;
   board: Cell[][];
   isReadOnly?: boolean;
+  loading?: boolean;
 };
 
 export type InputMode = "fill" | "note";
@@ -57,12 +58,13 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
   scale,
   board,
   isReadOnly,
+  loading,
 }) => {
   const {
     state: { selectedCell, inputMode, branchId },
     dispatch,
   } = useSudokuContext();
-  const [addCommit, { loading }] = useAddCommitMutation();
+  const [addCommit, { loading: addCommitLoading }] = useAddCommitMutation();
 
   const classes = useStyles({ scale });
 
@@ -139,6 +141,8 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
     }
   }
 
+  const isLoading = loading || addCommitLoading;
+
   const selectedVal = selectedCell
     ? board[selectedCell.row][selectedCell.col].val
     : 0;
@@ -187,7 +191,7 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
             })}
           </TableBody>
         </Table>
-        {loading && <LinearProgress />}
+        {isLoading && <LinearProgress />}
       </Box>
     </TableContainer>
   );

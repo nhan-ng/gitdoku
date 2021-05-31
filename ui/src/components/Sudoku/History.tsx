@@ -16,9 +16,9 @@ export const History: React.FC<HistoryProps> = ({ commits }) => {
     return (
       <ListItem button style={style} key={index}>
         <ListItemText
-          primary={`[${commit.row + 1}][${commit.col + 1}]: ${commit.type} ${
-            commit.val
-          }`}
+          primary={`[${commit?.row ?? 0 + 1}][${commit?.col ?? 0 + 1}]: ${
+            commit.type
+          } ${commit.val}`}
         />
       </ListItem>
     );

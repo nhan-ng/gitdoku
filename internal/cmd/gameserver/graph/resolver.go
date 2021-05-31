@@ -436,12 +436,19 @@ func ConvertCommit(commit *object.Commit) (*model.Commit, error) {
 	parts := strings.Split(commit.Message, " ")
 	result.Type = model.CommitType(parts[0])
 	switch result.Type {
-	case model.CommitTypeAddFill, model.CommitTypeRemoveFill, model.CommitTypeToggleNote:
+	case model.CommitTypeAddFill, model.CommitTypeToggleNote:
 		numbers, err := parseInts(parts[1:])
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse numbers from commit message: %w", err)
 		}
-		result.Row, result.Col, result.Val = numbers[0], numbers[1], numbers[2]
+		result.Row, result.Col, result.Val = IntPtr(numbers[0]), IntPtr(numbers[1]), IntPtr(numbers[2])
+
+	case model.CommitTypeRemoveFill:
+		numbers, err := parseInts(parts[1:])
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse numbers from commit message: %w", err)
+		}
+		result.Row, result.Col = IntPtr(numbers[0]), IntPtr(numbers[1])
 	}
 
 	return result, nil
@@ -462,4 +469,12 @@ func parseInts(inputs []string) ([]int, error) {
 	}
 
 	return result, nil
+}
+
+func IntPtr(i int) *int {
+	return &i
+}
+
+func StringPtr(s string) *string {
+	return &s
 }

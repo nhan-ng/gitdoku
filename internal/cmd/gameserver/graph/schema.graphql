@@ -29,7 +29,7 @@ input AddCommitInput {
   type: CommitType!
   row: Int!
   col: Int!
-  val: Int!
+  val: Int
 }
 
 type AddCommitPayload {
@@ -64,9 +64,9 @@ type Commit {
   blob: Blob!
 
   type: CommitType!
-  row: Int!
-  col: Int!
-  val: Int!
+  row: Int
+  col: Int
+  val: Int
 }
 
 enum CommitType {
