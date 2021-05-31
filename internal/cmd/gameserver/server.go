@@ -26,13 +26,12 @@ var (
 )
 
 type ServeOptions struct {
-	Port          int
-	UseFilesystem bool
+	Port int
 }
 
 func Serve(opts ServeOptions) error {
 	// Schema
-	resolver, err := graph.NewResolver(opts.UseFilesystem)
+	resolver, err := graph.NewResolver()
 	if closer, ok := resolver.Resolvers.(io.Closer); ok {
 		defer closer.Close()
 	}

@@ -5,9 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -20,12 +18,6 @@ import (
 
 	"github.com/go-git/go-billy/v5/memfs"
 	"github.com/go-git/go-git/v5/storage/memory"
-
-	"github.com/go-git/go-git/v5/storage"
-
-	"github.com/go-git/go-billy/v5/osfs"
-	"github.com/go-git/go-git/v5/plumbing/cache"
-	"github.com/go-git/go-git/v5/storage/filesystem"
 
 	"github.com/go-git/go-git/v5/plumbing"
 
@@ -79,8 +71,8 @@ type BranchObserver struct {
 	Observers map[string]chan *model.Commit
 }
 
-func NewResolver(useFilesystem bool) (*generated.Config, error) {
-	resolver, err := newGame(useFilesystem)
+func NewResolver() (*generated.Config, error) {
+	resolver, err := newGame()
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize a new game: %w", err)
 	}
@@ -89,7 +81,7 @@ func NewResolver(useFilesystem bool) (*generated.Config, error) {
 	}, nil
 }
 
-func newGame(useFilesystem bool) (*Resolver, error) {
+func newGame() (*Resolver, error) {
 	// Read the board
 	board, err := engine.ReadBoard(sampleSudoku)
 	if err != nil {
@@ -97,24 +89,9 @@ func newGame(useFilesystem bool) (*Resolver, error) {
 	}
 
 	// Initialize the backing fs
-	var fs billy.Filesystem
-	var storer storage.Storer
-	if useFilesystem {
-		// Initialize repo folder
-		path, err := ioutil.TempDir("", "gitdoku")
-		if err != nil {
-			return nil, fmt.Errorf("failed to create a temp dir for repo: %w", err)
-		}
-		zap.L().Info("Initialized origin repo on filesystem.", zap.String("path", path))
-
-		fs = osfs.New(path)
-		storerFS := osfs.New(filepath.Join(path, ".git"))
-		storer = filesystem.NewStorage(storerFS, cache.NewObjectLRUDefault())
-	} else { // Memory
-		zap.L().Info("Initialized origin repo in memory.")
-		fs = memfs.New()
-		storer = memory.NewStorage()
-	}
+	zap.L().Info("Initialized origin repo in memory.")
+	fs := memfs.New()
+	storer := memory.NewStorage()
 
 	// Initialize the repo
 	repo, err := git.Init(storer, fs)
