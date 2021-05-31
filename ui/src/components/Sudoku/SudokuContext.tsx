@@ -32,7 +32,8 @@ type SudokuAction =
   | { type: "MOVE_UP" }
   | { type: "MOVE_DOWN" }
   | { type: "SET_SELECTED_CELL"; row: number; col: number }
-  | { type: "TOGGLE_INPUT_MODE" };
+  | { type: "TOGGLE_INPUT_MODE" }
+  | { type: "SET_BRANCH"; branchId: string };
 
 const SudokuContext = createContext<SudokuContextProps>({
   state: { ...initialState },
@@ -48,6 +49,11 @@ export const SudokuContextProvider: React.FC<SudokuContextProviderProps> = ({
   children,
 }) => {
   const [state, dispatch] = useSudokuReducer(branchId);
+
+  // Sync branch if the context is updated
+  if (state.branchId !== branchId) {
+    dispatch({ type: "SET_BRANCH", branchId });
+  }
 
   return (
     <SudokuContext.Provider
@@ -67,7 +73,10 @@ export const useSudokuContext = (): SudokuContextProps =>
 const useSudokuReducer = (
   branchId: string
 ): [SudokuState, React.Dispatch<SudokuAction>] => {
-  return useReducer(sudokuReducer, { ...initialState, branchId });
+  return useReducer(sudokuReducer, { ...initialState }, (state) => {
+    console.log("I'm initilaized", branchId);
+    return { ...state, branchId };
+  });
 };
 
 const sudokuReducer = (
@@ -128,6 +137,12 @@ const sudokuReducer = (
           state.inputMode === SudokuInputMode.Fill
             ? SudokuInputMode.Note
             : SudokuInputMode.Fill,
+      };
+
+    case "SET_BRANCH":
+      return {
+        ...state,
+        branchId: action.branchId,
       };
 
     default:

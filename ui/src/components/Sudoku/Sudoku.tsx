@@ -53,6 +53,8 @@ const SudokuComponent: React.FC = () => {
     dispatch,
   } = useSudokuContext();
 
+  console.log("Use Sudoku Context. BranchID: ", branchId);
+
   const { data, error, loading, subscribeToMore } = useGetFullBranchQuery({
     variables: {
       id: branchId,
@@ -155,7 +157,9 @@ const SudokuComponent: React.FC = () => {
     return <>Error: {error}</>;
   }
 
-  const board = data.branch.commit.blob.board;
+  const lastCommit = data.branch.commit;
+  const lastCommitDate = new Date(lastCommit.authorTimestamp);
+  const board = lastCommit.blob.board;
   const commits = data.branch.commits;
 
   return (
@@ -180,12 +184,21 @@ const SudokuComponent: React.FC = () => {
         <Grid item md={4}>
           <History commits={commits} />
         </Grid>
+        <Grid item md={12}>
+          <Typography variant="h4" color="primary" gutterBottom>
+            {`Branch: ${branchId}`}
+          </Typography>
+          <Typography variant="subtitle1" gutterBottom>
+            {`Last committed: ${lastCommitDate.toLocaleString()}`}
+          </Typography>
+        </Grid>
       </Grid>
     </Layout>
   );
 };
 
 export const Sudoku: React.FC<SudokuProps> = ({ branchId }) => {
+  console.log("Rerender Sudoku. BranchID: ", branchId);
   return (
     <SudokuContextProvider branchId={branchId}>
       <SudokuComponent />

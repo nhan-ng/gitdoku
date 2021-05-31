@@ -89,9 +89,12 @@ export const Game: React.FC = () => {
     <Grid container>
       <Grid item md={12}>
         <Sudoku branchId={branchId} />
-        <PlayerList />
       </Grid>
+
       <Box my={6}>
+        <Grid item md={12}>
+          <PlayerList />
+        </Grid>
         <Box mb={3}>
           <NewBranchControl
             onSubmit={async (newBranchId: string) => {
