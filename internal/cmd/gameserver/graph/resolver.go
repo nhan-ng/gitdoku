@@ -13,7 +13,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nhan-ng/sudoku/internal/cmd/server/middleware"
+	"github.com/nhan-ng/sudoku/internal/cmd/gameserver/graph/generated"
+	"github.com/nhan-ng/sudoku/internal/cmd/gameserver/graph/model"
+
+	"github.com/nhan-ng/sudoku/internal/cmd/gameserver/middleware"
 
 	"github.com/go-git/go-billy/v5/memfs"
 	"github.com/go-git/go-git/v5/storage/memory"
@@ -34,8 +37,6 @@ import (
 
 	git "github.com/go-git/go-git/v5"
 
-	"github.com/nhan-ng/sudoku/graph/generated"
-	"github.com/nhan-ng/sudoku/graph/model"
 	"github.com/nhan-ng/sudoku/internal/engine"
 )
 

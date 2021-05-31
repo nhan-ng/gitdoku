@@ -1,4 +1,4 @@
-package server
+package gameserver
 
 import (
 	"context"
@@ -8,17 +8,15 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/nhan-ng/sudoku/internal/cmd/server/middleware"
-
-	"github.com/99designs/gqlgen/graphql/handler/extension"
-
-	"github.com/99designs/gqlgen/graphql/handler/transport"
-	"github.com/gorilla/websocket"
+	"github.com/nhan-ng/sudoku/internal/cmd/gameserver/graph"
+	"github.com/nhan-ng/sudoku/internal/cmd/gameserver/graph/generated"
+	"github.com/nhan-ng/sudoku/internal/cmd/gameserver/middleware"
 
 	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/99designs/gqlgen/graphql/handler/extension"
+	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
-	"github.com/nhan-ng/sudoku/graph"
-	"github.com/nhan-ng/sudoku/graph/generated"
+	"github.com/gorilla/websocket"
 	"github.com/rs/cors"
 	"go.uber.org/zap"
 )
@@ -27,9 +25,14 @@ var (
 	ErrDefaultGraphQL = errors.New("internal server error")
 )
 
-func Serve(useFilesytem bool) error {
+type ServeOptions struct {
+	Port          int
+	UseFilesystem bool
+}
+
+func Serve(opts ServeOptions) error {
 	// Schema
-	resolver, err := graph.NewResolver(useFilesytem)
+	resolver, err := graph.NewResolver(opts.UseFilesystem)
 	if closer, ok := resolver.Resolvers.(io.Closer); ok {
 		defer closer.Close()
 	}
@@ -63,6 +66,7 @@ func Serve(useFilesytem bool) error {
 	http.Handle("/", playground.Handler("Sudoku", "/graphql"))
 	http.Handle("/graphql", cors.AllowAll().Handler(middleware.IPMiddleware()(h)))
 
-	zap.L().Info("Serving at localhost:9999")
-	return http.ListenAndServe(":9999", nil)
+	port := opts.Port
+	zap.L().Info("Serving at localhost", zap.Int("port", port))
+	return http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 }

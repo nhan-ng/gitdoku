@@ -1,9 +1,9 @@
 {
-  "name": "Sudoku",
+  "name": "GameServer",
   "schemaPath": "schema.graphql",
   "extensions": {
     "endpoints": {
-      "Default GraphQL Endpoint": {
+      "GameServer": {
         "url": "http://localhost:9999/graphql",
         "headers": {
           "user-agent": "JS GraphQL"

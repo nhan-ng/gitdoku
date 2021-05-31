@@ -1,7 +1,7 @@
-package server
+package gameserver
 
 import (
-	"github.com/nhan-ng/sudoku/internal/cmd/server"
+	"github.com/nhan-ng/sudoku/internal/cmd/gameserver"
 	"github.com/spf13/cobra"
 )
 
@@ -10,21 +10,24 @@ type options struct {
 	port          int
 }
 
-func NewServerCmd() *cobra.Command {
+func NewGameServerCmd() *cobra.Command {
 	opts := &options{}
 
 	cmd := &cobra.Command{
-		Use:   "server",
+		Use:   "gameserver",
 		Short: "Run a server",
 		RunE:  opts.runE,
 	}
 
-	cmd.PersistentFlags().IntVarP(&opts.port, "port", "p", 8808, "The serving port.")
+	cmd.PersistentFlags().IntVarP(&opts.port, "port", "p", 9999, "The serving port.")
 	cmd.PersistentFlags().BoolVarP(&opts.useFilesystem, "filesystem", "f", false, "Whether to use filesystem.")
 
 	return cmd
 }
 
 func (o *options) runE(_ *cobra.Command, _ []string) error {
-	return server.Serve(o.useFilesystem)
+	return gameserver.Serve(gameserver.ServeOptions{
+		Port:          o.port,
+		UseFilesystem: o.useFilesystem,
+	})
 }

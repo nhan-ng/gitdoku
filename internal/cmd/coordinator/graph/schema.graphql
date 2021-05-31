@@ -1,0 +1,8 @@
+type Mutation {
+  allocateGame: AllocateGamePayload
+}
+
+type AllocateGamePayload {
+  address: String!
+  port: String!
+}

@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/nhan-ng/sudoku/cmd/server"
+	"github.com/nhan-ng/sudoku/cmd/coordinator"
+	"github.com/nhan-ng/sudoku/cmd/gameserver"
 
 	"github.com/nhan-ng/sudoku/cmd/play"
 
@@ -27,7 +28,8 @@ to quickly create a Cobra application.`,
 
 func init() {
 	rootCmd.AddCommand(play.NewPlayCmd())
-	rootCmd.AddCommand(server.NewServerCmd())
+	rootCmd.AddCommand(gameserver.NewGameServerCmd())
+	rootCmd.AddCommand(coordinator.NewCoordinatorCmd())
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
