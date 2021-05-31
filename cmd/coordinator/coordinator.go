@@ -6,8 +6,7 @@ import (
 )
 
 type options struct {
-	useFilesystem bool
-	port          int
+	port int
 }
 
 func NewCoordinatorCmd() *cobra.Command {

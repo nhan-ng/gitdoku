@@ -31,6 +31,8 @@ var (
 type ServeOptions struct {
 	Port int
 
+	UseRealClient bool
+
 	// To connect to Agones Allocator
 	AgonesEndpoint string
 	CertFile       string
@@ -40,7 +42,7 @@ type ServeOptions struct {
 
 func Serve(opts ServeOptions) error {
 	// Initialize a new client to Agones API
-	agonesClient, err := newAgonesClient(opts)
+	agonesClient, err := newAllocationServiceClient(opts)
 	if err != nil {
 		return fmt.Errorf("failed to initialize a new Agones client: %w", err)
 	}
@@ -68,30 +70,36 @@ func Serve(opts ServeOptions) error {
 	return http.ListenAndServe(fmt.Sprintf(":%d", opts.Port), nil)
 }
 
-func newAgonesClient(opts ServeOptions) (pb.AllocationServiceClient, error) {
-	cert, err := ioutil.ReadFile(opts.CertFile)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read client cert: %w", err)
-	}
-	key, err := ioutil.ReadFile(opts.KeyFile)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read client key: %w", err)
-	}
-	caCert, err := ioutil.ReadFile(opts.CACertFile)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read client CA cert: %w", err)
-	}
+func newAllocationServiceClient(opts ServeOptions) (pb.AllocationServiceClient, error) {
+	if opts.UseRealClient {
+		cert, err := ioutil.ReadFile(opts.CertFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read client cert: %w", err)
+		}
+		key, err := ioutil.ReadFile(opts.KeyFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read client key: %w", err)
+		}
+		caCert, err := ioutil.ReadFile(opts.CACertFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read client CA cert: %w", err)
+		}
 
-	dialOpts, err := createRemoteClusterDialOption(cert, key, caCert)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create new dial options: %w", err)
-	}
-	conn, err := grpc.Dial(opts.AgonesEndpoint, dialOpts)
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to Agones API: %w", err)
-	}
+		dialOpts, err := createRemoteClusterDialOption(cert, key, caCert)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create new dial options: %w", err)
+		}
+		conn, err := grpc.Dial(opts.AgonesEndpoint, dialOpts)
+		if err != nil {
+			return nil, fmt.Errorf("failed to connect to Agones API: %w", err)
+		}
 
-	return pb.NewAllocationServiceClient(conn), nil
+		return pb.NewAllocationServiceClient(conn), nil
+	} else {
+		return &NoopAllocationService{
+			logger: zap.L(),
+		}, nil
+	}
 }
 
 func createRemoteClusterDialOption(clientCert, clientKey, caCert []byte) (grpc.DialOption, error) {
