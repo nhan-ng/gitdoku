@@ -1,15 +1,19 @@
 import React, { createContext, useContext, useReducer } from "react";
-import { InputMode } from ".";
+
+export enum SudokuInputMode {
+  Fill = "FILL",
+  Note = "NOTE",
+}
 
 type SudokuState = {
   branchId: string;
   selectedCell?: SelectedCell;
-  inputMode: InputMode;
+  inputMode: SudokuInputMode;
 };
 
 const initialState: SudokuState = {
   branchId: "",
-  inputMode: "fill",
+  inputMode: SudokuInputMode.Fill,
 };
 
 type SudokuContextProps = {
@@ -120,7 +124,10 @@ const sudokuReducer = (
     case "TOGGLE_INPUT_MODE":
       return {
         ...state,
-        inputMode: state.inputMode === "fill" ? "note" : "fill",
+        inputMode:
+          state.inputMode === SudokuInputMode.Fill
+            ? SudokuInputMode.Note
+            : SudokuInputMode.Fill,
       };
 
     default:

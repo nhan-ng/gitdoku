@@ -1,4 +1,4 @@
-import { History, SudokuBoard, Toolbar } from ".";
+import { History, SudokuBoard, SudokuInputMode, Toolbar } from ".";
 import {
   CommitType,
   OnCommitAddedDocument,
@@ -25,23 +25,14 @@ import { SudokuContextProvider, useSudokuContext } from "./SudokuContext";
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
-    root: {
-      border: `1px solid ${theme.palette.divider}`,
-      borderRadius: theme.shape.borderRadius,
-      backgroundColor: theme.palette.background.paper,
-      color: theme.palette.text.secondary,
-      "& svg": {
-        margin: theme.spacing(1.5),
-      },
-      "& hr": {
-        margin: theme.spacing(0, 0.5),
-      },
-    },
     grow: {
       flexGrow: 1,
     },
     layout: {
       height: "700px",
+    },
+    spacer: {
+      marginButton: theme.spacing(3),
     },
   })
 );
@@ -67,6 +58,8 @@ const SudokuComponent: React.FC = () => {
       id: branchId,
     },
   });
+
+  const classes = useStyles();
 
   const [addCommit, addCommitMutation] = useAddCommitMutation();
 
@@ -112,7 +105,9 @@ const SudokuComponent: React.FC = () => {
         variables: {
           input: {
             type:
-              inputMode === "fill" ? CommitType.AddFill : CommitType.ToggleNote,
+              inputMode === SudokuInputMode.Fill
+                ? CommitType.AddFill
+                : CommitType.ToggleNote,
             branchId: branchId,
             row: selectedCell.row,
             col: selectedCell.col,
@@ -166,11 +161,15 @@ const SudokuComponent: React.FC = () => {
   return (
     <Layout>
       <Grid container>
+        <Grid item md={12}>
+          <Box mb={3}>
+            <Toolbar
+              onNumberInput={onNumberInput}
+              onNumberDelete={onNumberDelete}
+            />
+          </Box>
+        </Grid>
         <Grid item md={8}>
-          <Toolbar
-            onNumberInput={onNumberInput}
-            onNumberDelete={onNumberDelete}
-          />
           <SudokuBoard
             board={board}
             loading={addCommitMutation.loading}

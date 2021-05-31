@@ -7,39 +7,54 @@ import {
   IconButton,
   LinearProgress,
   makeStyles,
+  Paper,
   Theme,
+  Tooltip,
   Typography,
+  withStyles,
 } from "@material-ui/core";
 import React from "react";
-import FormatAlignLeftIcon from "@material-ui/icons/FormatAlignLeft";
-import FormatAlignCenterIcon from "@material-ui/icons/FormatAlignCenter";
-import FormatAlignRightIcon from "@material-ui/icons/FormatAlignRight";
-import FormatBoldIcon from "@material-ui/icons/FormatBold";
-import FormatItalicIcon from "@material-ui/icons/FormatItalic";
-import FormatUnderlinedIcon from "@material-ui/icons/FormatUnderlined";
 import CreateIcon from "@material-ui/icons/Create";
 import CommentIcon from "@material-ui/icons/Comment";
-import { useSudokuContext } from ".";
+import RateReviewIcon from "@material-ui/icons/RateReview";
+import DeleteIcon from "@material-ui/icons/Delete";
+import { SudokuInputMode, useSudokuContext } from ".";
+import { ToggleButton, ToggleButtonGroup } from "@material-ui/lab";
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
-    root: {
+    paper: {
+      display: "flex",
       border: `1px solid ${theme.palette.divider}`,
-      borderRadius: theme.shape.borderRadius,
-      backgroundColor: theme.palette.background.paper,
-      color: theme.palette.text.secondary,
-      "& svg": {
-        margin: theme.spacing(1.5),
-      },
-      "& hr": {
-        margin: theme.spacing(0, 0.5),
-      },
+      flexWrap: "wrap",
+      // borderRadius: theme.shape.borderRadius,
+      // backgroundColor: theme.palette.background.paper,
+      // color: theme.palette.text.secondary,
     },
     grow: {
       flexGrow: 1,
     },
+    divider: {
+      margin: theme.spacing(1, 0.5),
+    },
+    number: {
+      fontWeight: theme.typography.fontWeightBold,
+    },
   })
 );
+
+const StyledToggleButtonGroup = withStyles((theme) => ({
+  grouped: {
+    margin: theme.spacing(0.5),
+    border: "none",
+    "&:not(:first-child)": {
+      borderRadius: theme.shape.borderRadius,
+    },
+    "&:first-child": {
+      borderRadius: theme.shape.borderRadius,
+    },
+  },
+}))(ToggleButtonGroup);
 
 type ToolbarProps = {
   onNumberInput: (input: number) => Promise<void>;
@@ -56,28 +71,49 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     dispatch,
   } = useSudokuContext();
 
-  const isFillInputMode = inputMode === "fill";
   const toggleInputMode = () => {
     dispatch({ type: "TOGGLE_INPUT_MODE" });
   };
 
   return (
-    <Grid container alignItems="center" className={classes.root}>
-      {isFillInputMode ? (
-        <CreateIcon onClick={toggleInputMode} />
-      ) : (
-        <CommentIcon onClick={toggleInputMode} />
-      )}
-      <Divider orientation="vertical" flexItem />
-      {[...Array(9)].map((_, i) => {
-        const val = i + 1;
-        return (
-          <Button key={i} onClick={() => onNumberInput(val)}>
-            {val}
-          </Button>
-        );
-      })}
-      <div className={classes.grow} />
-    </Grid>
+    <Paper elevation={0} className={classes.paper}>
+      <StyledToggleButtonGroup
+        value={inputMode}
+        exclusive
+        onChange={toggleInputMode}
+      >
+        <ToggleButton value={SudokuInputMode.Fill}>
+          <Tooltip title="Fill A Cell">
+            <CreateIcon />
+          </Tooltip>
+        </ToggleButton>
+        <ToggleButton value={SudokuInputMode.Note}>
+          <Tooltip title="Make A Note">
+            <RateReviewIcon />
+          </Tooltip>
+        </ToggleButton>
+        <Divider flexItem orientation="vertical" className={classes.divider} />
+        <IconButton>
+          <Tooltip title="Delete">
+            <DeleteIcon onClick={() => onNumberDelete()} />
+          </Tooltip>
+        </IconButton>
+        <Divider flexItem orientation="vertical" className={classes.divider} />
+        {[...Array(9)].map((_, i) => {
+          const val = i + 1;
+          return (
+            <Button key={i} onClick={() => onNumberInput(val)}>
+              <Typography
+                variant="h5"
+                color="textSecondary"
+                className={classes.number}
+              >
+                {val}
+              </Typography>
+            </Button>
+          );
+        })}
+      </StyledToggleButtonGroup>
+    </Paper>
   );
 };

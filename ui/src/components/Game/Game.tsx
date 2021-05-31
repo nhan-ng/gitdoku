@@ -88,18 +88,8 @@ export const Game: React.FC = () => {
   return (
     <Grid container>
       <Grid item md={12}>
-        <Grid container alignItems="center" className={classes.root}>
-          <FormatAlignLeftIcon />
-          <FormatAlignCenterIcon />
-          <FormatAlignRightIcon />
-          <Divider orientation="vertical" flexItem />
-          <FormatBoldIcon />
-          <FormatItalicIcon />
-          <FormatUnderlinedIcon />
-          <div className={classes.grow} />
-          <PlayerList />
-        </Grid>
         <Sudoku branchId={branchId} />
+        <PlayerList />
       </Grid>
       <Box my={6}>
         <Box mb={3}>

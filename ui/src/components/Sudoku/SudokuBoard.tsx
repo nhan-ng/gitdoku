@@ -54,8 +54,6 @@ export type SudokuBoardProps = {
   onNumberDelete?: () => Promise<void>;
 };
 
-export type InputMode = "fill" | "note";
-
 export const SudokuBoard: React.FC<SudokuBoardProps> = ({
   scale,
   board,
