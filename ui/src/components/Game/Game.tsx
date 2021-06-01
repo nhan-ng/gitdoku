@@ -86,30 +86,26 @@ export const Game: React.FC = () => {
   );
 
   return (
-    <Grid container>
+    <Grid container alignItems="stretch" justify="center">
       <Grid item md={12}>
         <Sudoku branchId={branchId} />
       </Grid>
 
-      <Box my={6}>
-        <Grid item md={12}>
-          <PlayerList />
-        </Grid>
-        <Box mb={3}>
-          <NewBranchControl
-            onSubmit={async (newBranchId: string) => {
-              await addBranch({
-                variables: {
-                  input: {
-                    id: newBranchId,
-                    branchId: branchId,
-                  },
+      <Grid item md={12}>
+        <PlayerList />
+        <NewBranchControl
+          onSubmit={async (newBranchId: string) => {
+            await addBranch({
+              variables: {
+                input: {
+                  id: newBranchId,
+                  branchId: branchId,
                 },
-              });
-              setBranchId(newBranchId);
-            }}
-          />
-        </Box>
+              },
+            });
+            setBranchId(newBranchId);
+          }}
+        />
         <MergeBranchControl
           branchIds={branches
             .map((branch) => branch.id)
@@ -126,7 +122,7 @@ export const Game: React.FC = () => {
             });
           }}
         />
-      </Box>
+      </Grid>
       <Grid item md={12}>
         <BranchList
           onBranchClicked={setBranchId}

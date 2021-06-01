@@ -1,6 +1,6 @@
 import React from "react";
 import { useLobbyContext } from "../../contexts";
-import { Avatar } from "@material-ui/core";
+import { Avatar, Tooltip } from "@material-ui/core";
 import { Player, useGetPlayersQuery } from "__generated__/types";
 import { AvatarGroup } from "@material-ui/lab";
 import { orderBy, sortBy } from "lodash";
@@ -32,7 +32,9 @@ export const PlayerList: React.FC = () => {
         <AvatarGroup max={3}>
           {orderBy(players, [(p) => p.id]).map((player) => {
             return (
-              <Avatar key={player.id}>{acronym(player.displayName)}</Avatar>
+              <Tooltip title={player.displayName} key={player.id}>
+                <Avatar>{acronym(player.displayName)}</Avatar>
+              </Tooltip>
             );
           })}
         </AvatarGroup>

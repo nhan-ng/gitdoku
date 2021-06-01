@@ -124,7 +124,7 @@ func newGame() (*Resolver, error) {
 		Email: "gm@gitdoku.io",
 		When:  time.Now(),
 	}
-	commitID, err := w.Commit("Initial commit", &git.CommitOptions{
+	commitID, err := w.Commit(fmt.Sprintf("%s", model.CommitTypeInitial), &git.CommitOptions{
 		Author:    sig,
 		Committer: sig,
 	})

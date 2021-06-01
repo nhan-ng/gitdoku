@@ -28,20 +28,18 @@ const useStyles = makeStyles((theme: Theme) =>
     grow: {
       flexGrow: 1,
     },
-    layout: {
-      height: "700px",
+    root: {
+      height: "60em",
+    },
+    history: {
+      height: "75%",
+      marginBottom: theme.spacing(3),
     },
     spacer: {
-      marginButton: theme.spacing(3),
+      marginBottom: theme.spacing(3),
     },
   })
 );
-
-const Layout: React.FC = ({ children }) => {
-  const classes = useStyles();
-
-  return <Box className={classes.layout}>{children}</Box>;
-};
 
 type SudokuProps = {
   branchId: string;
@@ -145,11 +143,11 @@ const SudokuComponent: React.FC = () => {
 
   if (loading) {
     return (
-      <Layout>
+      <div className={classes.root}>
         <Grid item sm={12}>
           <LinearProgress />
         </Grid>
-      </Layout>
+      </div>
     );
   }
 
@@ -163,37 +161,33 @@ const SudokuComponent: React.FC = () => {
   const commits = data.branch.commits;
 
   return (
-    <Layout>
-      <Grid container>
-        <Grid item md={12}>
-          <Box mb={3}>
-            <Toolbar
-              onNumberInput={onNumberInput}
-              onNumberDelete={onNumberDelete}
-            />
-          </Box>
-        </Grid>
-        <Grid item md={8}>
-          <SudokuBoard
-            board={board}
-            loading={addCommitMutation.loading}
+    <Grid container alignContent="flex-start" className={classes.root}>
+      <Grid item md={12}>
+        <Box mb={1}>
+          <Toolbar
             onNumberInput={onNumberInput}
             onNumberDelete={onNumberDelete}
           />
-        </Grid>
-        <Grid item md={4}>
-          <History commits={commits} />
-        </Grid>
-        <Grid item md={12}>
-          <Typography variant="h4" color="primary" gutterBottom>
-            {`Branch: ${branchId}`}
-          </Typography>
-          <Typography variant="subtitle1" gutterBottom>
-            {`Last committed: ${lastCommitDate.toLocaleString()}`}
-          </Typography>
-        </Grid>
+        </Box>
       </Grid>
-    </Layout>
+      <Grid item md={7}>
+        <SudokuBoard
+          board={board}
+          loading={addCommitMutation.loading}
+          onNumberInput={onNumberInput}
+          onNumberDelete={onNumberDelete}
+        />
+        <Typography variant="h4" color="primary" gutterBottom>
+          {`Branch: ${branchId}`}
+        </Typography>
+        <Typography variant="subtitle1" gutterBottom>
+          {`Last committed: ${lastCommitDate.toLocaleString()}`}
+        </Typography>
+      </Grid>
+      <Grid item md={5} className={classes.history}>
+        <History commits={commits} />
+      </Grid>
+    </Grid>
   );
 };
 
