@@ -81,8 +81,11 @@ export const Game: React.FC = () => {
   // Revert sort by commit timestamp, i.e. larger timestamp first
   const branches = orderBy(
     data.branches,
-    [(branch) => new Date(branch.commit.authorTimestamp).getTime()],
-    ["desc"]
+    [
+      (branch) => new Date(branch.commit.authorTimestamp).getTime(),
+      (branch) => branch.id,
+    ],
+    ["desc", "asc"]
   );
 
   const branchIds = branches.map((branch) => branch.id);

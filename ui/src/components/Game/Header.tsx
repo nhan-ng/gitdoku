@@ -13,6 +13,7 @@ import {
   Icon,
 } from "@material-ui/core";
 import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
+import DoneIcon from "@material-ui/icons/Done";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCodeBranch } from "@fortawesome/free-solid-svg-icons";
 
@@ -69,8 +70,7 @@ const useStyles = makeStyles((theme: Theme) =>
     paper: {
       boxShadow: "none",
       margin: 0,
-      color: "#586069",
-      fontSize: 13,
+      fontSize: theme.typography.fontSize,
     },
     option: {
       minHeight: "auto",
@@ -85,6 +85,12 @@ const useStyles = makeStyles((theme: Theme) =>
     },
     popperDisablePortal: {
       position: "relative",
+    },
+    iconSelected: {
+      width: 17,
+      height: 17,
+      marginRight: 5,
+      marginLeft: -2,
     },
     text: {
       margin: theme.spacing(0, 0.5),
@@ -169,7 +175,14 @@ export const Header: React.FC<HeaderProps> = ({
             popperDisablePortal: classes.popperDisablePortal,
           }}
           renderOption={(option) => {
-            return <div className={classes.text}>{option}</div>;
+            return (
+              <>
+                <div className={classes.text}>{option}</div>
+                {option === currentBranchId && (
+                  <DoneIcon className={classes.iconSelected} />
+                )}
+              </>
+            );
           }}
           renderInput={(params) => (
             <InputBase
