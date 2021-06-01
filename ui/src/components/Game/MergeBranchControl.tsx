@@ -12,15 +12,17 @@ const useStyles = makeStyles({
 type MergeBranchControlProps = {
   onSubmit: (targetBranchId: string) => Promise<void>;
   branchIds: string[];
+  currentBranchId: string;
 };
 
 export const MergeBranchControl: React.FC<MergeBranchControlProps> = ({
   branchIds,
+  currentBranchId,
   onSubmit,
 }) => {
   const classes = useStyles();
 
-  const [selection, setSelection] = useState<string | undefined>(undefined);
+  const [selection, setSelection] = useState<string>();
 
   const handleSubmit = async (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
@@ -42,6 +44,7 @@ export const MergeBranchControl: React.FC<MergeBranchControlProps> = ({
           value={selection}
           onChange={(_, value) => setSelection(value || "")}
           options={branchIds}
+          getOptionDisabled={(option) => option === currentBranchId}
           renderInput={(params) => (
             <TextField
               {...params}

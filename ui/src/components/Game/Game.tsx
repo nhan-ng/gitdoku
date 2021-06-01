@@ -10,7 +10,7 @@ import {
 } from "@material-ui/core";
 import { Sudoku } from "components/Sudoku";
 import React, { useState } from "react";
-import { BranchList, PlayerList, Toolbar } from ".";
+import { BranchList, Header, PlayerList, Toolbar } from ".";
 import {
   GetBranchesDocument,
   GetFullBranchDocument,
@@ -85,8 +85,18 @@ export const Game: React.FC = () => {
     ["desc"]
   );
 
+  const branchIds = branches.map((branch) => branch.id);
+
   return (
-    <Grid container alignItems="stretch" justify="center">
+    <Grid container justify="center">
+      <Grid item md={12}>
+        <Header
+          branchIds={branchIds}
+          currentBranchId={branchId}
+          onSelected={setBranchId}
+        />
+      </Grid>
+
       <Grid item md={12}>
         <Sudoku branchId={branchId} />
       </Grid>
@@ -107,9 +117,8 @@ export const Game: React.FC = () => {
           }}
         />
         <MergeBranchControl
-          branchIds={branches
-            .map((branch) => branch.id)
-            .filter((id) => id !== branchId)}
+          branchIds={branchIds}
+          currentBranchId={branchId}
           onSubmit={async (targetBranchId) => {
             await mergeBranch({
               variables: {
