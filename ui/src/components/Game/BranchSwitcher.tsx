@@ -1,8 +1,6 @@
 import React, { useState } from "react";
 import { Autocomplete, AutocompleteCloseReason } from "@material-ui/lab";
 import {
-  ButtonBase,
-  TextField,
   Popper,
   InputBase,
   makeStyles,
@@ -10,7 +8,6 @@ import {
   Theme,
   fade,
   Button,
-  Icon,
 } from "@material-ui/core";
 import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 import DoneIcon from "@material-ui/icons/Done";
@@ -19,9 +16,7 @@ import { faCodeBranch } from "@fortawesome/free-solid-svg-icons";
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
-    root: {
-      width: 200,
-    },
+    root: {},
     button: {
       width: "100%",
       textAlign: "left",
@@ -39,7 +34,7 @@ const useStyles = makeStyles((theme: Theme) =>
       border: "1px solid rgba(27,31,35,.15)",
       boxShadow: "0 3px 12px rgba(27,31,35,.15)",
       borderRadius: 3,
-      width: 200,
+      width: 300,
       zIndex: 1,
       color: "#586069",
       backgroundColor: "#f6f8fa",
@@ -99,13 +94,13 @@ const useStyles = makeStyles((theme: Theme) =>
   })
 );
 
-type HeaderProps = {
+type BranchSwitcherProps = {
   branchIds: string[];
   currentBranchId: string;
   onSelected: (targetBranchId: string) => void;
 };
 
-export const Header: React.FC<HeaderProps> = ({
+export const BranchSwitcher: React.FC<BranchSwitcherProps> = ({
   currentBranchId,
   branchIds,
   onSelected,
@@ -189,6 +184,7 @@ export const Header: React.FC<HeaderProps> = ({
               ref={params.InputProps.ref}
               inputProps={params.inputProps}
               autoFocus
+              placeholder="Filter branches"
               className={classes.inputBase}
             />
           )}

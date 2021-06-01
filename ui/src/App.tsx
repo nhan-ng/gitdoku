@@ -13,7 +13,6 @@ import {
   ThemeProvider,
 } from "@material-ui/core/styles";
 import "@fontsource/roboto";
-import "@fortawesome/fontawesome-free";
 import { BrowserRouter as Router, Switch, Route, Link } from "react-router-dom";
 import { Lobby } from "components/Lobby";
 import { Home } from "components/Home";

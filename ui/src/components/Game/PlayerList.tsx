@@ -4,6 +4,7 @@ import { Avatar, Tooltip } from "@material-ui/core";
 import { Player, useGetPlayersQuery } from "__generated__/types";
 import { AvatarGroup } from "@material-ui/lab";
 import { orderBy, sortBy } from "lodash";
+import { Spacer } from ".";
 
 const acronym = (input: string): string => {
   const matches = input.match(/\b(\w)/g);
@@ -29,7 +30,7 @@ export const PlayerList: React.FC = () => {
   return (
     <>
       {players && (
-        <AvatarGroup max={3}>
+        <AvatarGroup max={6}>
           {orderBy(players, [(p) => p.id]).map((player) => {
             return (
               <Tooltip title={player.displayName} key={player.id}>

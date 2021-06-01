@@ -1,16 +1,15 @@
 import {
-  Box,
   Button,
   createStyles,
-  Divider,
   Grid,
   LinearProgress,
   makeStyles,
   Theme,
+  Typography,
 } from "@material-ui/core";
 import { Sudoku } from "components/Sudoku";
 import React, { useState } from "react";
-import { BranchList, Header, PlayerList, Toolbar } from ".";
+import { BranchList, BranchSwitcher, PlayerList } from ".";
 import {
   GetBranchesDocument,
   GetFullBranchDocument,
@@ -20,13 +19,9 @@ import {
 } from "../../__generated__/types";
 import { NewBranchControl } from ".";
 import { MergeBranchControl } from "./MergeBranchControl";
-import FormatAlignLeftIcon from "@material-ui/icons/FormatAlignLeft";
-import FormatAlignCenterIcon from "@material-ui/icons/FormatAlignCenter";
-import FormatAlignRightIcon from "@material-ui/icons/FormatAlignRight";
-import FormatBoldIcon from "@material-ui/icons/FormatBold";
-import FormatItalicIcon from "@material-ui/icons/FormatItalic";
-import FormatUnderlinedIcon from "@material-ui/icons/FormatUnderlined";
-import { orderBy, sortBy } from "lodash";
+import { orderBy } from "lodash";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCodeBranch, faUserFriends } from "@fortawesome/free-solid-svg-icons";
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
@@ -44,6 +39,15 @@ const useStyles = makeStyles((theme: Theme) =>
     },
     grow: {
       flexGrow: 1,
+    },
+    icon: {
+      paddingTop: 5,
+    },
+    summaryGroup: {
+      margin: theme.spacing(0, 2),
+      "& strong": {
+        fontWeight: theme.typography.fontWeightBold,
+      },
     },
   })
 );
@@ -93,11 +97,44 @@ export const Game: React.FC = () => {
   return (
     <Grid container justify="center">
       <Grid item md={12}>
-        <Header
-          branchIds={branchIds}
-          currentBranchId={branchId}
-          onSelected={setBranchId}
-        />
+        <Grid
+          container
+          justify="flex-start"
+          alignItems="center"
+          alignContent="space-between"
+        >
+          <Grid item md={2}>
+            <BranchSwitcher
+              branchIds={branchIds}
+              currentBranchId={branchId}
+              onSelected={setBranchId}
+            />
+          </Grid>
+
+          <Grid item md={4}>
+            <Typography component="span" className={classes.summaryGroup}>
+              <FontAwesomeIcon icon={faCodeBranch} />
+              <Typography component="strong">{` ${branches.length}`}</Typography>
+              <Typography component="span" color="textSecondary">
+                {" branches"}
+              </Typography>
+            </Typography>
+
+            <Typography component="span" className={classes.summaryGroup}>
+              <FontAwesomeIcon icon={faUserFriends} />
+              <Typography component="strong">{` ${branches.length}`}</Typography>
+              <Typography component="span" color="textSecondary">
+                {" contributors"}
+              </Typography>
+            </Typography>
+          </Grid>
+
+          <Grid item md />
+
+          <Grid item md>
+            <PlayerList />
+          </Grid>
+        </Grid>
       </Grid>
 
       <Grid item md={12}>
