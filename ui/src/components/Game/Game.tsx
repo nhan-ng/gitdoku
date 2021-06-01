@@ -142,7 +142,6 @@ export const Game: React.FC = () => {
       </Grid>
 
       <Grid item md={12}>
-        <PlayerList />
         <NewBranchControl
           onSubmit={async (newBranchId: string) => {
             await addBranch({
