@@ -33,7 +33,7 @@ const useStyles = makeStyles<Theme, StyledProps>((theme: Theme) =>
       fontSize: "2rem",
       textAlign: "center",
       padding: theme.spacing(1),
-      width: "1.6em",
+      width: "2em",
       height: "1.6em",
       color: ({ isImmutable }) =>
         isImmutable ? theme.palette.primary.dark : theme.palette.success.dark,

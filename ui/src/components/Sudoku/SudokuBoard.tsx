@@ -36,6 +36,7 @@ const useStyles = makeStyles<Theme, StyledProps>((theme: Theme) =>
     },
     scaled: {
       transform: ({ scale }) => `scale(${scale})`,
+      transformOrigin: "top left",
     },
     row: {
       "&:nth-child(3n)": {
@@ -49,7 +50,6 @@ export type SudokuBoardProps = {
   scale?: number;
   board: Cell[][];
   isReadOnly?: boolean;
-  loading?: boolean;
   onNumberInput?: (input: number) => Promise<void>;
   onNumberDelete?: () => Promise<void>;
 };
@@ -58,7 +58,6 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
   scale,
   board,
   isReadOnly,
-  loading,
   onNumberInput,
   onNumberDelete,
 }) => {
@@ -139,6 +138,7 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
   return (
     <TableContainer
       className={clsx(classes.root, scale && classes.scaled)}
+      elevation={3}
       component={Paper}
     >
       <Box fontWeight="fontWeightBold">
@@ -172,7 +172,6 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
             })}
           </TableBody>
         </Table>
-        {loading && <LinearProgress />}
       </Box>
     </TableContainer>
   );

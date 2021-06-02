@@ -14,6 +14,7 @@ import {
   Grid,
   LinearProgress,
   makeStyles,
+  Paper,
   Theme,
   Typography,
 } from "@material-ui/core";
@@ -29,14 +30,18 @@ const useStyles = makeStyles((theme: Theme) =>
       flexGrow: 1,
     },
     root: {
-      height: "60em",
+      // height: "50em",
     },
     history: {
-      height: "75%",
+      height: "100%",
       marginBottom: theme.spacing(3),
     },
     spacer: {
       marginBottom: theme.spacing(3),
+    },
+    summary: {
+      padding: theme.spacing(1),
+      margin: theme.spacing(1, 0),
     },
   })
 );
@@ -161,30 +166,36 @@ const SudokuComponent: React.FC = () => {
   const commits = data.branch.commits;
 
   return (
-    <Grid container alignContent="flex-start" className={classes.root}>
+    <Grid
+      direction="column"
+      container
+      alignContent="flex-start"
+      spacing={1}
+      className={classes.root}
+    >
       <Grid item md={12}>
-        <Box mb={1}>
+        <SudokuBoard
+          board={board}
+          onNumberInput={onNumberInput}
+          onNumberDelete={onNumberDelete}
+        />
+
+        <Box marginY={1}>
           <Toolbar
             onNumberInput={onNumberInput}
             onNumberDelete={onNumberDelete}
           />
         </Box>
+        <Paper elevation={0} className={classes.summary}>
+          <Typography variant="h4" color="primary" gutterBottom>
+            {`Branch: ${branchId}`}
+          </Typography>
+          <Typography variant="subtitle1" gutterBottom>
+            {`Last committed: ${lastCommitDate.toLocaleString()}`}
+          </Typography>
+        </Paper>
       </Grid>
-      <Grid item md={7}>
-        <SudokuBoard
-          board={board}
-          loading={addCommitMutation.loading}
-          onNumberInput={onNumberInput}
-          onNumberDelete={onNumberDelete}
-        />
-        <Typography variant="h4" color="primary" gutterBottom>
-          {`Branch: ${branchId}`}
-        </Typography>
-        <Typography variant="subtitle1" gutterBottom>
-          {`Last committed: ${lastCommitDate.toLocaleString()}`}
-        </Typography>
-      </Grid>
-      <Grid item md={5} className={classes.history}>
+      <Grid item md={12} className={classes.history}>
         <History commits={commits} />
       </Grid>
     </Grid>

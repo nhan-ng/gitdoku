@@ -41,21 +41,21 @@ const useStyles = makeStyles((theme: Theme) =>
     number: {
       fontWeight: theme.typography.fontWeightBold,
     },
+    numberButton: {
+      minWidth: "3.3em",
+    },
+    grouped: {
+      margin: theme.spacing(0.5),
+      border: "none",
+      "&:not(:first-child)": {
+        borderRadius: theme.shape.borderRadius,
+      },
+      "&:first-child": {
+        borderRadius: theme.shape.borderRadius,
+      },
+    },
   })
 );
-
-const StyledToggleButtonGroup = withStyles((theme) => ({
-  grouped: {
-    margin: theme.spacing(0.5),
-    border: "none",
-    "&:not(:first-child)": {
-      borderRadius: theme.shape.borderRadius,
-    },
-    "&:first-child": {
-      borderRadius: theme.shape.borderRadius,
-    },
-  },
-}))(ToggleButtonGroup);
 
 type ToolbarProps = {
   onNumberInput: (input: number) => Promise<void>;
@@ -77,10 +77,14 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   };
 
   return (
-    <Paper elevation={0} className={classes.paper}>
-      <StyledToggleButtonGroup
+    <Paper className={classes.paper}>
+      <ToggleButtonGroup
+        // orientation="vertical"
         value={inputMode}
         exclusive
+        classes={{
+          grouped: classes.grouped,
+        }}
         onChange={toggleInputMode}
       >
         <ToggleButton value={SudokuInputMode.Fill}>
@@ -103,7 +107,12 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         {[...Array(9)].map((_, i) => {
           const val = i + 1;
           return (
-            <Button key={i} onClick={() => onNumberInput(val)}>
+            <Button
+              className={classes.numberButton}
+              size="small"
+              key={i}
+              onClick={() => onNumberInput(val)}
+            >
               <Typography
                 variant="h5"
                 color={
@@ -118,7 +127,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             </Button>
           );
         })}
-      </StyledToggleButtonGroup>
+      </ToggleButtonGroup>
     </Paper>
   );
 };

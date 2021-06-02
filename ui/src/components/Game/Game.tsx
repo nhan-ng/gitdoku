@@ -137,11 +137,11 @@ export const Game: React.FC = () => {
         </Grid>
       </Grid>
 
-      <Grid item md={12}>
+      <Grid item md={8}>
         <Sudoku branchId={branchId} />
       </Grid>
 
-      <Grid item md={12}>
+      <Grid item md={4}>
         <NewBranchControl
           onSubmit={async (newBranchId: string) => {
             await addBranch({
@@ -170,8 +170,6 @@ export const Game: React.FC = () => {
             });
           }}
         />
-      </Grid>
-      <Grid item md={12}>
         <BranchList
           onBranchClicked={setBranchId}
           branches={branches}
