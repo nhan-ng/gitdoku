@@ -9,11 +9,13 @@ type SudokuState = {
   branchId: string;
   selectedCell?: SelectedCell;
   inputMode: SudokuInputMode;
+  loading: boolean;
 };
 
 const initialState: SudokuState = {
   branchId: "",
   inputMode: SudokuInputMode.Fill,
+  loading: false,
 };
 
 type SudokuContextProps = {
@@ -33,6 +35,7 @@ type SudokuAction =
   | { type: "MOVE_DOWN" }
   | { type: "SET_SELECTED_CELL"; row: number; col: number }
   | { type: "TOGGLE_INPUT_MODE" }
+  | { type: "SET_LOADING"; loading: boolean }
   | { type: "SET_BRANCH"; branchId: string };
 
 const SudokuContext = createContext<SudokuContextProps>({
@@ -143,6 +146,12 @@ const sudokuReducer = (
       return {
         ...state,
         branchId: action.branchId,
+      };
+
+    case "SET_LOADING":
+      return {
+        ...state,
+        loading: action.loading,
       };
 
     default:

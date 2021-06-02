@@ -44,7 +44,7 @@ const useStyles = makeStyles((theme: Theme) =>
       paddingTop: 5,
     },
     summaryGroup: {
-      margin: theme.spacing(0, 2),
+      margin: theme.spacing(0, 1.5),
       "& strong": {
         fontWeight: theme.typography.fontWeightBold,
       },
@@ -63,17 +63,6 @@ export const Game: React.FC = () => {
     refetchQueries: [
       {
         query: GetBranchesDocument,
-      },
-    ],
-  });
-
-  const [mergeBranch] = useMergeBranchMutation({
-    refetchQueries: [
-      {
-        query: GetFullBranchDocument,
-        variables: {
-          id: branchId,
-        },
       },
     ],
   });
@@ -99,11 +88,12 @@ export const Game: React.FC = () => {
       <Grid item md={12}>
         <Grid
           container
+          spacing={1}
           justify="flex-start"
           alignItems="center"
-          alignContent="space-between"
+          alignContent="space-around"
         >
-          <Grid item md={2}>
+          <Grid item md={3}>
             <BranchSwitcher
               branchIds={branchIds}
               currentBranchId={branchId}
@@ -129,10 +119,27 @@ export const Game: React.FC = () => {
             </Typography>
           </Grid>
 
-          <Grid item md />
+          <Grid item md>
+            <MergeBranchControl
+              branchIds={branchIds}
+              currentBranchId={branchId}
+            />
+          </Grid>
 
           <Grid item md>
-            <PlayerList />
+            <NewBranchControl
+              onSubmit={async (newBranchId: string) => {
+                await addBranch({
+                  variables: {
+                    input: {
+                      id: newBranchId,
+                      branchId: branchId,
+                    },
+                  },
+                });
+                setBranchId(newBranchId);
+              }}
+            />
           </Grid>
         </Grid>
       </Grid>
@@ -142,34 +149,7 @@ export const Game: React.FC = () => {
       </Grid>
 
       <Grid item md={4}>
-        <NewBranchControl
-          onSubmit={async (newBranchId: string) => {
-            await addBranch({
-              variables: {
-                input: {
-                  id: newBranchId,
-                  branchId: branchId,
-                },
-              },
-            });
-            setBranchId(newBranchId);
-          }}
-        />
-        <MergeBranchControl
-          branchIds={branchIds}
-          currentBranchId={branchId}
-          onSubmit={async (targetBranchId) => {
-            await mergeBranch({
-              variables: {
-                input: {
-                  sourceBranchId: branchId,
-                  targetBranchId,
-                  authorId: "me",
-                },
-              },
-            });
-          }}
-        />
+        <PlayerList />
         <BranchList
           onBranchClicked={setBranchId}
           branches={branches}

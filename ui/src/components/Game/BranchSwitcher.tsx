@@ -24,9 +24,10 @@ const useStyles = makeStyles((theme: Theme) =>
       fontWeight: theme.typography.fontWeightBold,
       "& span": {
         width: "100%",
-        padding: theme.spacing(0, 1),
+        padding: theme.spacing(0, 0.5),
         textTransform: "none",
         textOverflow: "ellipsis",
+        whiteSpace: "nowrap",
         overflow: "hidden",
       },
     },

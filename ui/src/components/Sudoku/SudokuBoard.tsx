@@ -62,7 +62,7 @@ export const SudokuBoard: React.FC<SudokuBoardProps> = ({
   onNumberDelete,
 }) => {
   const {
-    state: { selectedCell },
+    state: { selectedCell, loading },
     dispatch,
   } = useSudokuContext();
 

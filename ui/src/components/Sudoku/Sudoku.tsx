@@ -18,10 +18,6 @@ import {
   Theme,
   Typography,
 } from "@material-ui/core";
-import { Fab } from "@material-ui/core";
-import EditIcon from "@material-ui/icons/Edit";
-import NoteIcon from "@material-ui/icons/Note";
-import ClearIcon from "@material-ui/icons/Clear";
 import { SudokuContextProvider, useSudokuContext } from "./SudokuContext";
 
 const useStyles = makeStyles((theme: Theme) =>
@@ -99,6 +95,10 @@ const SudokuComponent: React.FC = () => {
       },
     });
   }, [subscribeToMore, branchId]);
+
+  useEffect(() => {
+    dispatch({ type: "SET_LOADING", loading: addCommitMutation.loading });
+  }, [addCommitMutation.loading, dispatch]);
 
   const onNumberInput = async (val: number) => {
     if (!selectedCell) {
